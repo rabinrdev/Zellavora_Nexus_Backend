@@ -1,5 +1,5 @@
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
-import helmet from 'helmet';
+import helmetModule from 'helmet';
 import cors from 'cors';
 import hpp from 'hpp';
 import { randomUUID } from 'node:crypto';
@@ -12,6 +12,12 @@ import { mountDocs } from './platform/openapi/serve.js';
 import { newId, safeEqual } from './platform/crypto.js';
 import { withPlatformScope } from './platform/scope.js';
 import type { Services } from './platform/types.js';
+
+// helmet ships CJS-flavoured types; depending on resolution the default import is the module namespace.
+type HelmetFactory = () => RequestHandler;
+const helmetCandidate = helmetModule as unknown;
+const helmet: HelmetFactory =
+  typeof helmetCandidate === 'function' ? (helmetCandidate as HelmetFactory) : (helmetCandidate as { default: HelmetFactory }).default;
 
 const requestId: RequestHandler = (req, res, next) => {
   const inbound = req.header('x-request-id');
