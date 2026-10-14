@@ -17,6 +17,8 @@ const schema = z.object({
   LOG_LEVEL: z.string().default('info'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
   METRICS_TOKEN: z.string().min(16).optional(),
+  /** Shared secret for the scheduler endpoint (Vercel Cron sends it as a Bearer token). */
+  CRON_SECRET: z.string().min(16).optional(),
   MAIL_DRIVER: z.enum(['console', 'smtp']).default('console'),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default('Zellavora Nexus <no-reply@example.test>'),

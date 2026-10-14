@@ -88,6 +88,22 @@ export function createApp(
     res.setHeader('Content-Type', registry.contentType);
     res.send(await registry.metrics());
   });
+  // scheduler tick (serverless hosts have no long-lived process): flush the outbox and enqueue hourly jobs
+  app.get('/api/v1/internal/cron/tick', async (req, res, next) => {
+    try {
+      const tok = svc.env.CRON_SECRET;
+      const given = (req.get('authorization') ?? '').replace(/^Bearers+/i, '');
+      if (!tok || !safeEqual(tok, given)) {
+        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found', details: [], requestId: res.locals.requestId } });
+        return;
+      }
+      const dispatched = await svc.events.dispatchPending(500);
+      await svc.jobs.enqueue('retention', {});
+      res.json({ data: { dispatched } });
+    } catch (e) {
+      next(e);
+    }
+  });
   app.get('/api/v1/meta/version', (_req, res) =>
     void res.json({ data: { version: svc.env.APP_VERSION, gitSha: svc.env.GIT_SHA, apiVersions: ['v1'] } }),
   );
