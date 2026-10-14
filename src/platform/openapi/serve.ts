@@ -27,6 +27,19 @@ function basicGate(user: string, pass: string): RequestHandler {
   };
 }
 
+// Swagger UI lays each tag header out as title | description | arrow in a flex row, so descriptions start wherever the
+// title ends and the column is ragged. A grid gives every tag the same title column, description column and arrow slot.
+const DOCS_CSS = [
+  '.swagger-ui .topbar { display: none }',
+  '.swagger-ui .info .title small.version-stamp { background:#4f46e5 }',
+  '.swagger-ui .opblock-tag { display: grid; grid-template-columns: minmax(170px, 240px) minmax(0, 1fr) 40px; align-items: center; column-gap: 24px; padding: 14px 10px; }',
+  '.swagger-ui .opblock-tag > a.nostyle { min-width: 0; overflow-wrap: anywhere; }',
+  '.swagger-ui .opblock-tag > small { display: block; margin: 0; padding: 0; min-width: 0; }',
+  '.swagger-ui .opblock-tag > small p { margin: 0 0 4px; }',
+  '.swagger-ui .opblock-tag > .expand-operation { justify-self: end; margin: 0; }',
+  '@media (max-width: 760px) { .swagger-ui .opblock-tag { grid-template-columns: minmax(0, 1fr) 40px; row-gap: 6px; } .swagger-ui .opblock-tag > small { grid-column: 1 / -1; grid-row: 2; } }',
+].join(' ');
+
 const audienceOf = (v: unknown): Audience => (v === 'full' ? 'full' : 'frontend');
 
 // Rendered as a function by swagger-ui-express: logical method order inside each tag, then path.
@@ -78,9 +91,9 @@ export function mountDocs(app: Express, env: Env, version: string): void {
     swaggerUi.setup(null, {
       swaggerUrl: '/api/docs/openapi.json',
       customSiteTitle: 'Zellavora Nexus API',
-      customCss: '.swagger-ui .topbar { display: none } .swagger-ui .info .title small.version-stamp { background:#4f46e5 }',
+      customCss: DOCS_CSS,
       swaggerOptions: {
-        persistAuthorization: true, displayOperationId: true, filter: true, deepLinking: true, docExpansion: 'none',
+        validatorUrl: null, persistAuthorization: true, displayOperationId: true, filter: true, deepLinking: true, docExpansion: 'none',
         defaultModelsExpandDepth: 2, defaultModelExpandDepth: 3, operationsSorter, tagsSorter: () => 0,
         requestSnippetsEnabled: true, displayRequestDuration: true,
         // "Try it out" is available outside production only
