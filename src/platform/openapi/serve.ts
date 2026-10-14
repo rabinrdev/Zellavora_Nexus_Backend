@@ -11,7 +11,7 @@ import type { Env } from '../../config/env.js';
 const require = createRequire(import.meta.url);
 
 export function docsEnabled(env: Pick<Env, 'SWAGGER' | 'NODE_ENV'>): boolean {
-  return env.SWAGGER ?? env.NODE_ENV !== 'production';
+  return env.SWAGGER ?? true; // on by default, production included (read-only there); set SWAGGER=false to disable
 }
 
 /** HTTP Basic gate (staging): `DOCS_BASIC_AUTH_USER` / `DOCS_BASIC_AUTH_PASS`. */
@@ -39,7 +39,7 @@ const operationsSorter = (a: any, b: any) => {
 
 /**
  * Mounts /api/docs (Swagger UI), /api/redoc (Redoc), /api/docs/openapi.{json,yaml} and the legacy /api/openapi.json.
- * Enabled by `SWAGGER` (default: on outside production). Never exposes secrets: the spec is built from route metadata only.
+ * Enabled by `SWAGGER` (default: on, including production; set `SWAGGER=false` to turn off). Never exposes secrets: the spec is built from route metadata only.
  */
 export function mountDocs(app: Express, env: Env, version: string): void {
   if (!docsEnabled(env)) return;

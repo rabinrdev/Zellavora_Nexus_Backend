@@ -88,7 +88,7 @@ Handlers are inline in `defineRoute` (there are no controller classes). The `ope
 `tests/helpers/doc-check.ts` records every response any e2e test causes and fails when the status is not declared for that operation; `tests/contract.e2e.test.ts` validates real bodies against the generated JSON Schema (Ajv 2020). Statuses that no test exercises (for example a rarely hit 409) are derived from handler source and explicit `errors` lists, so they are best-effort.
 
 ## D-029 Serving
-`/api/docs` (Swagger UI), `/api/redoc`, `/api/docs/openapi.{json,yaml}`; `?audience=full` includes internal operations (default `frontend`). Enabled by `SWAGGER` (default off in production); optional HTTP Basic gate `DOCS_BASIC_AUTH_USER/PASS`; "Try it out" disabled in production; the first server is `/` (same origin) because the docs CSP (`connect-src 'self'`) blocks cross-origin calls. Redoc is pinned to 2.5 (3.x needs an ES module build) and served from a versioned URL.
+`/api/docs` (Swagger UI), `/api/redoc`, `/api/docs/openapi.{json,yaml}`; `?audience=full` includes internal operations (default `frontend`). Enabled by `SWAGGER` (default on, including production); optional HTTP Basic gate `DOCS_BASIC_AUTH_USER/PASS`; "Try it out" disabled in production; the first server is `/` (same origin) because the docs CSP (`connect-src 'self'`) blocks cross-origin calls. Redoc is pinned to 2.5 (3.x needs an ES module build) and served from a versioned URL.
 
 ## D-030 SDK is its own package
 `sdk/` (`@zellavora/nexus-api-client`) has its own dependencies because `openapi-typescript` requires TypeScript 5 while the API uses 6. Types and the operation map are generated and committed; CI regenerates and fails on a diff.

@@ -16,7 +16,7 @@ Copy into the release ticket. Every box must be checked or explicitly waived wit
 ## Configuration (`NODE_ENV=production npm run readiness` shows READY)
 - [ ] `JWT_SECRET` ≥ 48 random chars; `DATA_ENCRYPTION_KEY` is a real 32-byte key from the secret manager
 - [ ] Runtime connects as `nexus_app`, not a superuser
-- [ ] `CORS_ORIGINS` set; `SWAGGER` off; `METRICS_TOKEN` set
+- [ ] `CORS_ORIGINS` set; `SWAGGER` reviewed (on by default; `false` to hide docs); `METRICS_TOKEN` set
 - [ ] `MAIL_DRIVER=smtp`, `SCAN_DRIVER=clamd` reachable, `STORAGE_DRIVER` points at private storage
 - [ ] `ERROR_TRACKING_DSN` set; log shipping and alert rules in place
 - [ ] Module flags reviewed: only intended modules enabled per tenant

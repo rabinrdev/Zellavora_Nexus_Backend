@@ -29,7 +29,7 @@ METRICS_TOKEN=
 
 # --- HTTP -----------------------------------------------------------------
 CORS_ORIGINS=http://localhost:5173      # comma-separated allow-list (required in production)
-SWAGGER=true                            # Swagger UI /api/docs, Redoc /api/redoc, spec /api/docs/openapi.json (keep off in production)
+SWAGGER=true                            # Swagger UI /api/docs, Redoc /api/redoc, spec /api/docs/openapi.json (default on, also in production; SWAGGER=false disables)
 #APP_BASE_URL=https://api.example.test   # `servers` entry of the OpenAPI document
 #DOCS_BASIC_AUTH_USER=docs               # optional HTTP Basic gate in front of the docs (staging)
 #DOCS_BASIC_AUTH_PASS=change-me-please
