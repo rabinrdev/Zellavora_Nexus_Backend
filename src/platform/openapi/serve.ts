@@ -35,6 +35,9 @@ const DOCS_CSS = [
   '.swagger-ui .scheme-container .schemes-server-container { display: none !important }',
   '.swagger-ui .scheme-container .schemes { justify-content: flex-end }', // Authorize stays at the right edge
   '.swagger-ui .scheme-container .auth-wrapper { margin-left: auto }',
+  // the Webhooks block is a bare <h2> plus rows: give the heading the same look as a tag header
+  '.swagger-ui .webhooks { margin-top: 20px }',
+  '.swagger-ui .webhooks > h2 { margin: 0 0 5px; padding: 10px 20px 10px 10px; font-family: sans-serif; font-size: 24px; font-weight: 700; color: #3b4151; border-bottom: 1px solid rgba(59, 65, 81, 0.3) }',
   '.swagger-ui .opblock-tag > small { display: none }', // tag descriptions
   '.swagger-ui .opblock-tag { justify-content: space-between }', // chevron at the right edge, as in stock Swagger UI
 ].join(' ');
