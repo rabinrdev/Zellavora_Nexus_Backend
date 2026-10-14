@@ -27,17 +27,16 @@ function basicGate(user: string, pass: string): RequestHandler {
   };
 }
 
-// Swagger UI lays each tag header out as title | description | arrow in a flex row, so descriptions start wherever the
-// title ends and the column is ragged. A grid gives every tag the same title column, description column and arrow slot.
+// Stock Swagger UI look (dark top bar, default method colours, flat tag headers). The only adjustment: Swagger UI lays a
+// tag header out as title | description | arrow in one flex row, so descriptions start wherever the title ends. Here the
+// title and a small muted description stack in the left column and the arrow stays at the right edge.
 const DOCS_CSS = [
-  '.swagger-ui .topbar { display: none }',
-  '.swagger-ui .info .title small.version-stamp { background:#4f46e5 }',
-  '.swagger-ui .opblock-tag { display: grid; grid-template-columns: minmax(170px, 240px) minmax(0, 1fr) 40px; align-items: center; column-gap: 24px; padding: 14px 10px; }',
-  '.swagger-ui .opblock-tag > a.nostyle { min-width: 0; overflow-wrap: anywhere; }',
-  '.swagger-ui .opblock-tag > small { display: block; margin: 0; padding: 0; min-width: 0; }',
-  '.swagger-ui .opblock-tag > small p { margin: 0 0 4px; }',
-  '.swagger-ui .opblock-tag > .expand-operation { justify-self: end; margin: 0; }',
-  '@media (max-width: 760px) { .swagger-ui .opblock-tag { grid-template-columns: minmax(0, 1fr) 40px; row-gap: 6px; } .swagger-ui .opblock-tag > small { grid-column: 1 / -1; grid-row: 2; } }',
+  '.swagger-ui .opblock-tag { display: grid; grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "title arrow" "desc arrow"; align-items: center; column-gap: 16px; padding: 10px 20px 10px 10px; }',
+  '.swagger-ui .opblock-tag > a.nostyle { grid-area: title; min-width: 0; overflow-wrap: anywhere; }',
+  '.swagger-ui .opblock-tag > small { grid-area: desc; display: block; margin: 2px 0 0; padding: 0; min-width: 0; font-size: 13px; font-weight: 400; line-height: 1.4; color: #6b6f7b; }',
+  '.swagger-ui .opblock-tag > small p { margin: 0; }',
+  '.swagger-ui .opblock-tag > small p + p { display: none }', // "Release: …" line
+  '.swagger-ui .opblock-tag > .expand-operation { grid-area: arrow; justify-self: end; margin: 0; }',
 ].join(' ');
 
 const audienceOf = (v: unknown): Audience => (v === 'full' ? 'full' : 'frontend');
@@ -89,7 +88,11 @@ export function mountDocs(app: Express, env: Env, version: string): void {
     '/docs',
     swaggerUi.serve,
     swaggerUi.setup(null, {
-      swaggerUrl: '/api/docs/openapi.json',
+      // two definitions in the top bar's "Select a definition" dropdown, like the standard Swagger UI layout
+      swaggerUrls: [
+        { url: '/api/docs/openapi.json', name: 'Zellavora Nexus API (frontend)' },
+        { url: '/api/docs/openapi.json?audience=full', name: 'Zellavora Nexus API (full, with internal operations)' },
+      ] as unknown as string[], // @types says string[]; swagger-ui accepts { url, name } entries
       customSiteTitle: 'Zellavora Nexus API',
       customCss: DOCS_CSS,
       swaggerOptions: {
