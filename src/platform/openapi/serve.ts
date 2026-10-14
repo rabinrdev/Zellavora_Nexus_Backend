@@ -53,7 +53,7 @@ const operationsSorter = (a: any, b: any) => {
 };
 
 /**
- * Mounts /api/docs (Swagger UI), /api/redoc (Redoc), /api/docs/openapi.{json,yaml} and the legacy /api/openapi.json.
+ * Mounts Swagger UI at /index.html (and /api/docs), /api/redoc (Redoc), /api/docs/openapi.{json,yaml} and the legacy /api/openapi.json.
  * Enabled by `SWAGGER` (default: on, including production; set `SWAGGER=false` to turn off). Never exposes secrets: the spec is built from route metadata only.
  */
 export function mountDocs(app: Express, env: Env, version: string): void {
@@ -87,10 +87,7 @@ export function mountDocs(app: Express, env: Env, version: string): void {
   });
   router.get('/openapi.json', (_req, res) => void res.json(spec('frontend'))); // kept for existing tooling
 
-  router.use(
-    '/docs',
-    swaggerUi.serve,
-    swaggerUi.setup(null, {
+  const ui = swaggerUi.setup(null, {
       // two definitions in the top bar's "Select a definition" dropdown, like the standard Swagger UI layout
       swaggerUrls: [
         { url: '/api/docs/openapi.json', name: 'Zellavora Nexus API (frontend)' },
@@ -105,8 +102,17 @@ export function mountDocs(app: Express, env: Env, version: string): void {
         // "Try it out" is available outside production only
         ...(production ? { supportedSubmitMethods: [] } : {}),
       },
-    }),
-  );
+  });
+  router.use('/docs', swaggerUi.serve, ui);
+
+  // Same UI at the site root, like a plain Swagger UI deployment: /index.html (and / redirects to it). Registered with
+  // app.get on exact paths so the basic gate / CSP only apply to these files and never to API routes.
+  const rootAssets = [
+    '/swagger-ui.css', '/swagger-ui-bundle.js', '/swagger-ui-standalone-preset.js', '/swagger-ui-init.js', '/favicon-16x16.png', '/favicon-32x32.png',
+  ];
+  app.get('/', (_req, res) => void res.redirect('/index.html'));
+  app.get('/index.html', ...gate, docsCsp, ui); // before the asset handlers: swagger-ui-dist ships its own demo index.html
+  for (const asset of rootAssets) app.get(asset, ...gate, docsCsp, ...swaggerUi.serve);
 
   const redocVersion = (require('redoc/package.json') as { version: string }).version; // in the URL so an upgrade never serves a stale cached bundle
   const redocDir = path.dirname(require.resolve('redoc/bundles/redoc.standalone.js'));

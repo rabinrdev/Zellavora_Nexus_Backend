@@ -33,7 +33,9 @@ function init() {
 
 // API docs are built from route metadata only (no DB, mail or storage), so they are served by a light app that
 // does not depend on the full service boot. They stay reachable even when the main API cannot start.
-const DOCS_PATH = /^\/(?:api\/(?:docs|redoc|openapi\.json)(?:[/?]|$)|$)/;
+// /api/docs*, /api/redoc*, /api/openapi.json, or the root-level UI: /, /index.html and the swagger-ui assets
+const DOCS_PATH =
+  /^\/(?:api\/(?:docs|redoc|openapi\.json)(?:[/?]|$)|(?:index\.html|swagger-ui[\w.-]*\.(?:css|js)|favicon-(?:16x16|32x32)\.png)?(?:\?.*)?$)/;
 let docsApp: Express | undefined;
 function docs(): Express {
   if (docsApp) return docsApp;
@@ -47,7 +49,6 @@ function docs(): Express {
   };
   const app = express();
   if (docsEnabled(env)) {
-    app.get('/', (_req, res) => void res.redirect('/api/docs'));
     mountDocs(app, env as unknown as Parameters<typeof mountDocs>[1], process.env.APP_VERSION ?? '0.1.0');
   }
   docsApp = app;

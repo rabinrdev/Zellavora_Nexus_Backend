@@ -42,7 +42,10 @@ function mountedRoutes(): string[] {
   const app = createApp(ctx.svc) as unknown as { router: { stack: any[] } };  
   visit(app.router.stack, '');
   // documentation UI routes and the scheduler tick (secret-gated infra hook) are not part of the API surface
-  return out.filter((r) => !/ \/api\/(docs|redoc|openapi)/.test(r) && !/ \/api\/v1\/internal\/cron\//.test(r));
+  // (the docs UI is also served at the site root: /, /index.html and the swagger-ui assets)
+  return out.filter(
+    (r) => !/ \/api\/(docs|redoc|openapi)/.test(r) && !/ \/api\/v1\/internal\/cron\//.test(r) && !/ \/(index\.html|swagger-ui[\w.-]*|favicon-\d+x\d+\.png)?$/.test(r),
+  );
 }
 
 describe('OpenAPI gates', () => {
