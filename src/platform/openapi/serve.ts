@@ -27,16 +27,16 @@ function basicGate(user: string, pass: string): RequestHandler {
   };
 }
 
-// Stock Swagger UI look (dark top bar, default method colours, flat tag headers). The only adjustment: Swagger UI lays a
-// tag header out as title | description | arrow in one flex row, so descriptions start wherever the title ends. Here the
-// title and a small muted description stack in the left column and the arrow stays at the right edge.
+// Stock Swagger UI layout, the same as a plain Swagger UI deployment: dark top bar with the definition selector, a compact
+// title block, the Authorize button, then flat tag headers with their operations listed underneath. Everything that is
+// not in that layout is hidden here (the long intro guide stays available in openapi.json / Redoc).
 const DOCS_CSS = [
-  '.swagger-ui .opblock-tag { display: grid; grid-template-columns: minmax(0, 1fr) 40px; grid-template-areas: "title arrow" "desc arrow"; align-items: center; column-gap: 16px; padding: 10px 20px 10px 10px; }',
-  '.swagger-ui .opblock-tag > a.nostyle { grid-area: title; min-width: 0; overflow-wrap: anywhere; }',
-  '.swagger-ui .opblock-tag > small { grid-area: desc; display: block; margin: 2px 0 0; padding: 0; min-width: 0; font-size: 13px; font-weight: 400; line-height: 1.4; color: #6b6f7b; }',
-  '.swagger-ui .opblock-tag > small p { margin: 0; }',
-  '.swagger-ui .opblock-tag > small p + p { display: none }', // "Release: …" line
-  '.swagger-ui .opblock-tag > .expand-operation { grid-area: arrow; justify-self: end; margin: 0; }',
+  '.swagger-ui .info .description, .swagger-ui .info .base-url, .swagger-ui .info__contact { display: none }',
+  '.swagger-ui .scheme-container .schemes-server-container { display: none !important }',
+  '.swagger-ui .scheme-container .schemes { justify-content: flex-end }', // Authorize stays at the right edge
+  '.swagger-ui .scheme-container .auth-wrapper { margin-left: auto }',
+  '.swagger-ui .opblock-tag > small { display: none }', // tag descriptions
+  '.swagger-ui .opblock-tag { justify-content: space-between }', // chevron at the right edge, as in stock Swagger UI
 ].join(' ');
 
 const audienceOf = (v: unknown): Audience => (v === 'full' ? 'full' : 'frontend');
@@ -96,7 +96,7 @@ export function mountDocs(app: Express, env: Env, version: string): void {
       customSiteTitle: 'Zellavora Nexus API',
       customCss: DOCS_CSS,
       swaggerOptions: {
-        validatorUrl: null, persistAuthorization: true, displayOperationId: true, filter: true, deepLinking: true, docExpansion: 'none',
+        validatorUrl: null, persistAuthorization: true, displayOperationId: false, filter: false, deepLinking: true, docExpansion: 'list',
         defaultModelsExpandDepth: 2, defaultModelExpandDepth: 3, operationsSorter, tagsSorter: () => 0,
         requestSnippetsEnabled: true, displayRequestDuration: true,
         // "Try it out" is available outside production only
