@@ -41,8 +41,8 @@ function mountedRoutes(): string[] {
   };
   const app = createApp(ctx.svc) as unknown as { router: { stack: any[] } };  
   visit(app.router.stack, '');
-  // documentation UI routes are not part of the API surface
-  return out.filter((r) => !/ \/api\/(docs|redoc|openapi)/.test(r));
+  // documentation UI routes and the scheduler tick (secret-gated infra hook) are not part of the API surface
+  return out.filter((r) => !/ \/api\/(docs|redoc|openapi)/.test(r) && !/ \/api\/v1\/internal\/cron\//.test(r));
 }
 
 describe('OpenAPI gates', () => {

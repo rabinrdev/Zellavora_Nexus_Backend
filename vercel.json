@@ -5,7 +5,7 @@
   "buildCommand": "npm run build && node -e \"const f=require('fs');f.mkdirSync('public',{recursive:true});f.writeFileSync('public/robots.txt','User-agent: * Disallow: /')\"",
   "functions": {
     "api/index.js": {
-      "includeFiles": "dist/**",
+      "includeFiles": "{dist/**,node_modules/swagger-ui-dist/**,node_modules/redoc/bundles/**}",
       "maxDuration": 30
     }
   },

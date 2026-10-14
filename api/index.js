@@ -3,6 +3,7 @@
 // outbox is flushed after each response plus on the /internal/cron/tick schedule.
 import { waitUntil } from '@vercel/functions';
 import pg from 'pg';
+import express from 'express';
 
 process.env.JOBS_DRIVER ??= 'inline';
 process.env.DB_POOL_MAX ??= '3';
@@ -26,7 +27,51 @@ function init() {
   return ready;
 }
 
+// API docs are built from route metadata only (no DB, mail or storage), so they are served by a light app that
+// does not depend on the full service boot. They stay reachable even when the main API cannot start.
+const DOCS_PATH = /^\/(?:api\/(?:docs|redoc|openapi\.json)(?:[/?]|$)|$)/;
+let docsApp;
+async function docs() {
+  docsApp ??= (async () => {
+    await import('../dist/src/modules/index.js'); // registers every route into the registry the spec is built from
+    const { mountDocs, docsEnabled } = await import('../dist/src/platform/openapi/serve.js');
+    const flag = (process.env.SWAGGER ?? '').toLowerCase();
+    const env = {
+      NODE_ENV: process.env.NODE_ENV ?? 'production',
+      SWAGGER: flag ? flag === 'true' || flag === '1' : undefined,
+      APP_BASE_URL: process.env.APP_BASE_URL,
+      DOCS_BASIC_AUTH_USER: process.env.DOCS_BASIC_AUTH_USER,
+      DOCS_BASIC_AUTH_PASS: process.env.DOCS_BASIC_AUTH_PASS,
+    };
+    const app = express();
+    if (docsEnabled(env)) {
+      app.get('/', (_req, res) => res.redirect('/api/docs'));
+      mountDocs(app, env, process.env.APP_VERSION ?? '0.1.0');
+    }
+    return app;
+  })().catch((e) => {
+    docsApp = undefined;
+    throw e;
+  });
+  return docsApp;
+}
+
 export default async function handler(req, res) {
+  if (req.method === 'GET' && DOCS_PATH.test(req.url ?? '/')) {
+    const app = await docs();
+    return app(req, res, (err) => {
+      if (err) {
+        res.statusCode = 500;
+        res.end();
+        return;
+      }
+      void mainHandler(req, res); // not a docs route after all
+    });
+  }
+  return mainHandler(req, res);
+}
+
+async function mainHandler(req, res) {
   const { svc, app } = await init();
   res.on('finish', () => {
     waitUntil(svc.events.dispatchPending().catch((e) => svc.log.error({ err: e?.message }, 'outbox dispatch failed')));
