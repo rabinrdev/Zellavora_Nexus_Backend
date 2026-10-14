@@ -36,6 +36,9 @@ const schema = z.object({
   MAX_UPLOAD_BYTES: z.coerce.number().int().default(10 * 1024 * 1024),
   MODULE_FLAGS_DEFAULT: z.enum(['on', 'off']).optional(),
   OUTBOUND_REQUIRE_HTTPS: bool.optional(),
+  /** Connection budget. Managed poolers cap total clients (Supabase session mode: 15): keep db + jobs well below it. */
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+  JOBS_DB_POOL_MAX: z.coerce.number().int().min(2).max(20).default(4),
   JOBS_DRIVER: z.enum(['pgboss', 'inline']).default('pgboss'),
   /** postgres = shared counters across instances (default in production); memory = per instance. */
   RATE_LIMIT_STORE: z.enum(['memory', 'postgres']).optional(),

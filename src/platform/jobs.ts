@@ -65,8 +65,10 @@ export class PgBossJobQueue implements JobQueue {
   private readonly handlers = new Map<QueueName, JobHandler[]>();
   private readonly bound = new Set<QueueName>();
   private started = false;
-  constructor(connectionString: string, private readonly db: Knex, private readonly opts: { pollingIntervalSeconds?: number } = {}) {
-    this.boss = new PgBoss(connectionString);
+  constructor(connectionString: string, private readonly db: Knex, private readonly opts: { pollingIntervalSeconds?: number; poolMax?: number; onError?: (e: Error) => void } = {}) {
+    this.boss = new PgBoss({ connectionString, max: opts.poolMax ?? 4 });
+    // an unhandled 'error' event would crash the process; connection hiccups must only be logged and retried
+    this.boss.on('error', (e: Error) => opts.onError?.(e));
   }
   async start() {
     await this.boss.start();

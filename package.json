@@ -16,7 +16,6 @@
     "db:migrate": "tsx node_modules/knex/bin/cli.js migrate:latest",
     "db:rollback": "tsx node_modules/knex/bin/cli.js migrate:rollback",
     "db:check": "tsx scripts/db-check.ts",
-    "db:seed": "tsx node_modules/knex/bin/cli.js seed:run",
     "rls:audit": "tsx scripts/rls-audit.ts",
     "openapi:gen": "tsx scripts/gen-openapi.ts",
     "openapi:check": "tsx scripts/gen-openapi.ts --check",

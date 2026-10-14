@@ -25,7 +25,7 @@ export interface Overrides {
 }
 
 export async function buildServices(env: Env, overrides: Overrides = {}): Promise<Services> {
-  const db = createDb(env.DATABASE_URL);
+  const db = createDb(env.DATABASE_URL, env.DB_POOL_MAX);
   const log = createLogger(env.NODE_ENV === 'test' ? 'silent' : env.LOG_LEVEL);
   const mail =
     overrides.mail ??
@@ -48,7 +48,7 @@ export async function buildServices(env: Env, overrides: Overrides = {}): Promis
     overrides.jobs ??
     (env.JOBS_DRIVER === 'inline' || env.NODE_ENV === 'test'
       ? new InlineJobQueue(db)
-      : new PgBossJobQueue(env.MIGRATOR_DATABASE_URL ?? env.DATABASE_URL, db));
+      : new PgBossJobQueue(env.MIGRATOR_DATABASE_URL ?? env.DATABASE_URL, db, { poolMax: env.JOBS_DB_POOL_MAX, onError: (e) => log.error({ err: e.message }, 'job queue error') }));
   const svc: Services = {
     env, db, log, keys: new EnvKeyProvider(env.DATA_ENCRYPTION_KEY), mail, storage,
     events: new EventBus(db), jobs, tracker, now: () => new Date(), fetch: overrides.fetch, resolver: overrides.resolver,

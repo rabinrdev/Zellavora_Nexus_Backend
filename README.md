@@ -8,7 +8,6 @@ npm ci
 # create .env from docs/CONFIGURATION.md (JWT_SECRET, DATA_ENCRYPTION_KEY, database URLs)
 npm run dev:db                  # embedded PostgreSQL on :54329 (or use docker compose up postgres)
 npm run db:migrate              # as the owner role; creates the nexus_app runtime role
-npm run db:seed                 # optional demo org (owner@acme.example.test)
 npm run dev                     # http://localhost:3000  ·  Swagger UI: /api/docs
 ```
 With Docker: `docker compose up -d postgres mailpit` (add `--profile app` to run the API image).
@@ -30,4 +29,5 @@ npm run test:coverage
 
 ## Useful commands
 `npm run admin:create` (platform admin) · `npm run readiness` · `npm run rls:audit` · `npm run openapi:gen` · `npm run docs:erd` · `npm run docs:trace`
+
 
