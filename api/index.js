@@ -8,6 +8,8 @@ import express from 'express';
 process.env.JOBS_DRIVER ??= 'inline';
 process.env.DB_POOL_MAX ??= '3';
 
+// Loaded lazily (not as top-level imports) so a failure shows up as a readable error response instead of a bare
+// FUNCTION_INVOCATION_FAILED. Vercel's file tracer still follows these literal specifiers.
 let ready;
 function init() {
   ready ??= (async () => {
@@ -31,7 +33,7 @@ function init() {
 // does not depend on the full service boot. They stay reachable even when the main API cannot start.
 const DOCS_PATH = /^\/(?:api\/(?:docs|redoc|openapi\.json)(?:[/?]|$)|$)/;
 let docsApp;
-async function docs() {
+function docs() {
   docsApp ??= (async () => {
     await import('../dist/src/modules/index.js'); // registers every route into the registry the spec is built from
     const { mountDocs, docsEnabled } = await import('../dist/src/platform/openapi/serve.js');
@@ -56,19 +58,13 @@ async function docs() {
   return docsApp;
 }
 
-export default async function handler(req, res) {
-  if (req.method === 'GET' && DOCS_PATH.test(req.url ?? '/')) {
-    const app = await docs();
-    return app(req, res, (err) => {
-      if (err) {
-        res.statusCode = 500;
-        res.end();
-        return;
-      }
-      void mainHandler(req, res); // not a docs route after all
-    });
-  }
-  return mainHandler(req, res);
+function fail(res, where, e) {
+  console.error(`[${where}]`, e);
+  if (res.headersSent) return;
+  res.statusCode = 500;
+  res.setHeader('content-type', 'application/json');
+  // the message names the failing module or setting (never values or secrets)
+  res.end(JSON.stringify({ error: { code: 'STARTUP_FAILED', where, message: String(e?.message ?? e).slice(0, 500) } }));
 }
 
 async function mainHandler(req, res) {
@@ -77,4 +73,24 @@ async function mainHandler(req, res) {
     waitUntil(svc.events.dispatchPending().catch((e) => svc.log.error({ err: e?.message }, 'outbox dispatch failed')));
   });
   return app(req, res);
+}
+
+export default async function handler(req, res) {
+  try {
+    if (req.method === 'GET' && DOCS_PATH.test(req.url ?? '/')) {
+      let app;
+      try {
+        app = await docs();
+      } catch (e) {
+        return fail(res, 'docs', e);
+      }
+      return app(req, res, (err) => {
+        if (err) return fail(res, 'docs', err);
+        mainHandler(req, res).catch((e) => fail(res, 'api', e)); // not a docs route after all
+      });
+    }
+    return await mainHandler(req, res);
+  } catch (e) {
+    return fail(res, 'api', e);
+  }
 }
