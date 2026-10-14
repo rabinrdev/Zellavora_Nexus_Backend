@@ -64,7 +64,7 @@ function fail(res, where, e) {
   res.statusCode = 500;
   res.setHeader('content-type', 'application/json');
   // the message names the failing module or setting (never values or secrets)
-  res.end(JSON.stringify({ error: { code: 'STARTUP_FAILED', where, message: String(e?.message ?? e).slice(0, 500) } }));
+  res.end(JSON.stringify({ error: { code: 'STARTUP_FAILED', where, node: process.version, message: String(e?.message ?? e).slice(0, 500) } }));
 }
 
 async function mainHandler(req, res) {
