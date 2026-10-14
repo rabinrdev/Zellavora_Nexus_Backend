@@ -5,7 +5,7 @@
   "buildCommand": "npm run build:vercel && node -e \"const f=require('fs');f.mkdirSync('public',{recursive:true});f.writeFileSync('public/robots.txt','User-agent: * Disallow: /')\"",
   "functions": {
     "api/index.js": {
-      "includeFiles": "{dist/vercel/**,node_modules/swagger-ui-dist/**,node_modules/redoc/bundles/**}",
+      "includeFiles": "node_modules/{redoc,swagger-ui-dist}/**",
       "maxDuration": 30
     }
   },
