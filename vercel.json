@@ -2,10 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm ci",
-  "buildCommand": "npm run build && node -e \"const f=require('fs');f.mkdirSync('public',{recursive:true});f.writeFileSync('public/robots.txt','User-agent: * Disallow: /')\"",
+  "buildCommand": "npm run build:vercel && node -e \"const f=require('fs');f.mkdirSync('public',{recursive:true});f.writeFileSync('public/robots.txt','User-agent: * Disallow: /')\"",
   "functions": {
     "api/index.js": {
-      "includeFiles": "{dist/**,node_modules/swagger-ui-dist/**,node_modules/redoc/bundles/**}",
+      "includeFiles": "{dist/vercel/**,node_modules/swagger-ui-dist/**,node_modules/redoc/bundles/**}",
       "maxDuration": 30
     }
   },
