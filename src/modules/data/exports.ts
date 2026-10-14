@@ -1,5 +1,4 @@
 import { stringify } from 'csv-stringify/sync';
-import ExcelJS from 'exceljs';
 import { z } from 'zod';
 import { defineRoute, type HandlerCtx } from '../../platform/http/route.js';
 import { AppError } from '../../platform/errors.js';
@@ -35,6 +34,8 @@ export async function renderExport(rows: Record<string, unknown>[], format: Expo
     const safe = flat.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : v])));
     return { body: Buffer.from(stringify(safe, { header: true, columns }), 'utf8'), ext: '.csv' };
   }
+  // loaded on demand: exceljs pulls in uuid (ESM-only), which must not be able to break app startup on older runtimes
+  const { default: ExcelJS } = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Export');
   ws.columns = columns.map((c) => ({ header: c, key: c }));
