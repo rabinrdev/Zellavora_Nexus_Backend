@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler", "lib": ["ES2022", "DOM"],
+    "strict": true, "declaration": true, "outDir": "dist", "skipLibCheck": true, "noUncheckedIndexedAccess": false
+  },
+  "include": ["client/**/*.ts", "types/**/*.d.ts"]
+}

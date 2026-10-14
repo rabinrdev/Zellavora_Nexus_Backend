@@ -1,0 +1,67 @@
+﻿name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: nexus }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      NODE_ENV: test
+      MIGRATOR_DATABASE_URL: postgres://postgres:postgres@localhost:5432/nexus
+      DATABASE_URL: postgres://nexus_app:nexus_app_dev_pw@localhost:5432/nexus
+      JWT_SECRET: ci-jwt-secret-ci-jwt-secret-ci-jwt-secret-1234
+      DATA_ENCRYPTION_KEY: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+      JOBS_DRIVER: inline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Migrations up/down/up
+        run: npm run db:check
+      - name: RLS audit (every tenant table enforces row-level security)
+        run: npm run rls:audit
+      - name: API docs - committed OpenAPI/Postman/guide are current, Spectral lint passes
+        run: npm run docs:check
+      - name: SDK types are current and compile
+        run: |
+          npm --prefix sdk ci
+          npm run docs:sdk
+          git diff --exit-code sdk/types sdk/client/operations.generated.ts
+      - name: Tests (unit, integration, tenant isolation, e2e) with coverage
+        run: npm run test:coverage
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Docker build
+        run: docker build -t zellavora-nexus-api:${{ github.sha }} .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-and-openapi
+          path: |
+            coverage
+            docs/openapi.json
+            docs/openapi.yaml
+
+  vuln-scan:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google/osv-scanner-action/osv-scanner-action@v1.9.0
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
+

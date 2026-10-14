@@ -1,0 +1,22 @@
+{
+  "name": "@zellavora/nexus-api-client",
+  "version": "1.0.0",
+  "description": "Typed client for the Zellavora Nexus API. Method names equal the OpenAPI operationIds (api.createProject(...)).",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "types", "README.md"],
+  "scripts": {
+    "generate": "openapi-typescript ../docs/openapi.yaml -o types/api.d.ts --default-non-nullable false && node scripts/gen-operations.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.13.5"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.8.0",
+    "typescript": "^5.9.3"
+  },
+  "license": "ISC"
+}

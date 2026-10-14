@@ -1,0 +1,61 @@
+﻿name: zellavora-nexus
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nexus
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexus"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit: # dev SMTP sink + UI on :8025
+    image: axllent/mailpit:v1.20
+    ports: ["1025:1025", "8025:8025"]
+
+  minio: # S3-compatible object storage (optional driver)
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+  clamav: # malware scanning (enable with: docker compose --profile scan up)
+    image: clamav/clamav:1.4
+    profiles: ["scan"]
+    ports: ["3310:3310"]
+
+  migrate:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      MIGRATOR_DATABASE_URL: postgres://postgres:postgres@postgres:5432/nexus
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/nexus
+      NEXUS_APP_DB_PASSWORD: nexus_app_dev_pw
+    command: ["node", "node_modules/knex/bin/cli.js", "migrate:latest", "--knexfile", "dist/knexfile.js"]
+
+  api:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgres://nexus_app:nexus_app_dev_pw@postgres:5432/nexus
+      MIGRATOR_DATABASE_URL: postgres://postgres:postgres@postgres:5432/nexus
+      NODE_ENV: development
+      SMTP_URL: smtp://mailpit:1025
+
+volumes:
+  pgdata:
+  miniodata:
+

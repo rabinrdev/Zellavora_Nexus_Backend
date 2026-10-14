@@ -1,0 +1,84 @@
+extends: ["spectral:oas"]
+# Zellavora Nexus API style rules (docs/API_NAMING.md). Run: npm run docs:lint
+rules:
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-description: error
+  operation-tags: error
+  operation-success-response: error
+  # defaults we do not want to fail on
+  info-contact: off
+  oas3-unused-component: off
+  no-$ref-siblings: off
+
+  nexus-operation-id-camel-case:
+    description: operationId must be camelCase verbNoun
+    severity: error
+    given: "$.paths[*][*].operationId"
+    then: { function: pattern, functionOptions: { match: "^[a-z][a-zA-Z0-9]+$" } }
+
+  nexus-operation-summary:
+    description: summary is required and at most 60 characters
+    severity: error
+    given: "$.paths[*][*]"
+    then:
+      - { field: summary, function: truthy }
+      - { field: summary, function: length, functionOptions: { max: 60 } }
+
+  nexus-no-id-path-param:
+    description: path parameters are descriptive (projectId), never {id}
+    severity: error
+    given: "$.paths"
+    then: { field: "@key", function: pattern, functionOptions: { notMatch: "\\{id\\}" } }
+
+  nexus-path-kebab-lowercase:
+    description: static path segments are lowercase kebab-case
+    severity: error
+    given: "$.paths"
+    then: { field: "@key", function: pattern, functionOptions: { match: "^(/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-zA-Z0-9]+\\}))+$" } }
+
+  nexus-security-declared:
+    description: every operation declares security explicitly (use [] for public)
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then: { field: security, function: defined }
+
+  nexus-response-has-error-500:
+    description: every operation documents 500
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete].responses"
+    then: { field: "500", function: defined }
+
+  nexus-authenticated-has-401-403:
+    description: operations with bearer security document 401 and 403
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete][?(@.security && @.security.length > 0)].responses"
+    then:
+      - { field: "401", function: defined }
+      - { field: "403", function: defined }
+
+  nexus-success-has-example:
+    description: success responses carry a response example
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete].responses[?(@property.match(/^20[0-2]$/))].content[*]"
+    then: { field: example, function: defined }
+
+  nexus-parameter-described:
+    description: parameters need description (and example for non-reference parameters)
+    severity: error
+    given: "$.paths[*][*].parameters[?(@.name)]"
+    then:
+      - { field: description, function: truthy }
+      - { field: example, function: defined }
+
+  nexus-schema-name-pascal:
+    description: component schema names are PascalCase and never generic
+    severity: error
+    given: "$.components.schemas"
+    then: { field: "@key", function: pattern, functionOptions: { match: "^[A-Z][A-Za-z0-9]+$", notMatch: "(Dto|Model|Obj|Data|Item[0-9])$" } }
+
+  nexus-schema-property-described:
+    description: object properties have a description
+    severity: error
+    given: "$.components.schemas[*].properties[*]"
+    then: { field: description, function: truthy }

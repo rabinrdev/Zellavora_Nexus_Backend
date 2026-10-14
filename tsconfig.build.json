@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false
+  },
+  "include": ["src", "migrations", "seeds", "knexfile.ts", "scripts"],
+  "exclude": ["tests", "**/*.test.ts"]
+}

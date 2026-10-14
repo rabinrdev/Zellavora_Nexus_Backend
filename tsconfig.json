@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2023", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "strict": true, "noUncheckedIndexedAccess": true, "esModuleInterop": true,
+    "skipLibCheck": true, "outDir": "dist", "rootDir": ".", "resolveJsonModule": true,
+    "noEmit": true, "types": ["node"]
+  },
+  "include": ["src", "scripts", "tests", "migrations", "seeds", "knexfile.ts", "vitest.config.ts"]
+}
