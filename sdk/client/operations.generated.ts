@@ -165,6 +165,7 @@ export const OPERATIONS = {
   getLeadById: { method: 'get', path: '/api/v1/leads/{leadId}' },
   getLocationById: { method: 'get', path: '/api/v1/locations/{locationId}' },
   getLoginToken: { method: 'get', path: '/api/v1/auth/gettoken' },
+  getMyMenu: { method: 'get', path: '/api/v1/me/menu' },
   getMyNotificationPreferences: { method: 'get', path: '/api/v1/notification-preferences' },
   getMyPermissions: { method: 'get', path: '/api/v1/me/permissions' },
   getMyPreferences: { method: 'get', path: '/api/v1/me/preferences' },

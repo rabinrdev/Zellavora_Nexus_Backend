@@ -12,6 +12,8 @@ import {
   revokeRole, rolePermissionKeys,
 } from './service.js';
 import { SYSTEM_ROLE_IDS } from './system-roles.js';
+import { buildMenu, menuFlagKeys } from './menu.js';
+import { isFlagEnabled } from '../../platform/flags.js';
 import { inviteUser } from '../organizations/invitations.js';
 
 const M = 'iam';
@@ -411,6 +413,19 @@ defineRoute({
       (map[res] ??= []).push(act);
     }
     return { data: { permissions: [...c.auth!.permissions].sort(), resources: map, note: 'UI hiding is never enforcement' } };
+  },
+});
+
+defineRoute({
+  method: 'get', path: '/me/menu', module: M, summary: 'Navigation menu and sub-menus for the caller',
+  access: 'authenticated', response: obj,
+  async handler(c) {
+    const flags: Record<string, boolean> = {};
+    for (const key of menuFlagKeys()) {
+      flags[key] = await isFlagEnabled(c.trx, key, { organizationId: c.orgId(), userId: c.auth!.userId });
+    }
+    const menu = buildMenu({ permissions: c.auth!.permissions, isPlatformAdmin: c.auth!.isPlatformAdmin, flags });
+    return { data: { menu, note: 'UI hiding is never enforcement' } };
   },
 });
 

@@ -3113,6 +3113,48 @@
           }
         },
         {
+          "name": "Navigation menu and sub-menus for the caller",
+          "request": {
+            "name": "Navigation menu and sub-menus for the caller",
+            "description": {
+              "content": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "me",
+                "menu"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Role × permission matrix",
           "request": {
             "name": "Role × permission matrix",

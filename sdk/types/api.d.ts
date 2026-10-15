@@ -1547,6 +1547,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Navigation menu and sub-menus for the caller
+         * @description Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `default` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Users & Access (IAM) · MVP_
+         */
+        get: operations["getMyMenu"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/iam/permission-matrix": {
         parameters: {
             query?: never;
@@ -17301,6 +17331,124 @@ export interface components {
                 resources: {
                     [key: string]: string[];
                 };
+                /** @description Reminder that UI hiding is not enforcement. */
+                note: string;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `getMyMenu`. */
+        GetMyMenuResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description Top-level menu entries the caller may see, in display order. Groups carry their visible sub-menus in `children`. */
+                menu: {
+                    /** @description Stable menu key, e.g. `people.users`. */
+                    key: string;
+                    /** @description Display label. */
+                    title: string;
+                    /** @description Frontend route; `null` for a group that only holds sub-menus. */
+                    path: string | null;
+                    /** @description Icon name hint; `null` when none. */
+                    icon: string | null;
+                    /** @description Visible sub-menus (empty for a leaf). */
+                    children: {
+                        /** @description Stable menu key, e.g. `people.users`. */
+                        key: string;
+                        /** @description Display label. */
+                        title: string;
+                        /** @description Frontend route; `null` for a group that only holds sub-menus. */
+                        path: string | null;
+                        /** @description Icon name hint; `null` when none. */
+                        icon: string | null;
+                        /** @description Third-level items the caller may see. */
+                        children: {
+                            /** @description Stable menu key, e.g. `people.users`. */
+                            key: string;
+                            /** @description Display label. */
+                            title: string;
+                            /** @description Frontend route; `null` for a group that only holds sub-menus. */
+                            path: string | null;
+                            /** @description Icon name hint; `null` when none. */
+                            icon: string | null;
+                            /** @description Always empty at the third level. */
+                            children: string[];
+                        }[];
+                    }[];
+                }[];
                 /** @description Reminder that UI hiding is not enforcement. */
                 note: string;
             };
@@ -54122,6 +54270,85 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["GetMyPermissionsResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    getMyMenu: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "menu": [
+                     *           {
+                     *             "key": "dashboard",
+                     *             "title": "Dashboard",
+                     *             "path": "/dashboard",
+                     *             "icon": "layout-dashboard",
+                     *             "children": []
+                     *           },
+                     *           {
+                     *             "key": "people",
+                     *             "title": "People & Access",
+                     *             "path": null,
+                     *             "icon": "users",
+                     *             "children": [
+                     *               {
+                     *                 "key": "people.users",
+                     *                 "title": "Users",
+                     *                 "path": "/users",
+                     *                 "icon": null,
+                     *                 "children": []
+                     *               }
+                     *             ]
+                     *           }
+                     *         ],
+                     *         "note": "UI hiding is never enforcement"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["GetMyMenuResponse"];
                 };
             };
             401: components["responses"]["Unauthenticated"];

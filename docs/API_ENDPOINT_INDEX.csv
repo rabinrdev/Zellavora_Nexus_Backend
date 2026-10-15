@@ -55,6 +55,7 @@ Users & Access (IAM),createAccessRequest,POST,/api/v1/access-requests,Request a 
 Users & Access (IAM),approveAccessRequest,POST,/api/v1/access-requests/{accessRequestId}/approve,Approve an access request,access_requests:approve,ApproveAccessRequestRequest,200 ApproveAccessRequestResponse,401 403 404 409 422 429 500 503,,
 Users & Access (IAM),denyAccessRequest,POST,/api/v1/access-requests/{accessRequestId}/deny,Deny an access request,access_requests:approve,DenyAccessRequestRequest,200 DenyAccessRequestResponse,401 403 404 409 422 429 500 503,,
 Users & Access (IAM),getMyPermissions,GET,/api/v1/me/permissions,Permissions and action map for the caller,any signed-in user,,200 GetMyPermissionsResponse,401 403 429 500 503,,
+Users & Access (IAM),getMyMenu,GET,/api/v1/me/menu,Navigation menu and sub-menus for the caller,any signed-in user,,200 GetMyMenuResponse,401 403 429 500 503,,
 Users & Access (IAM),getPermissionMatrix,GET,/api/v1/iam/permission-matrix,Role × permission matrix,iam:read,,200 GetPermissionMatrixResponse,401 403 429 500 503,,
 Users & Access (IAM),getUserEffectiveAccess,GET,/api/v1/iam/users/{userId}/effective-access,Effective access preview for a member,iam:read,,200 GetUserEffectiveAccessResponse,401 403 404 422 429 500 503,,
 Users & Access (IAM),listAccessHistory,GET,/api/v1/iam/access-history,Append-only access change history,iam:read,,200 AccessHistoryEntryListResponse,401 403 422 429 500 503,,

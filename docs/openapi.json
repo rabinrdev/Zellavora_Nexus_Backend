@@ -8054,6 +8054,258 @@
         ],
         "description": "Success response of `getMyPermissions`."
       },
+      "GetMyMenuResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "menu": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Stable menu key, e.g. `people.users`."
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Display label."
+                    },
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Frontend route; `null` for a group that only holds sub-menus."
+                    },
+                    "icon": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Icon name hint; `null` when none."
+                    },
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "Stable menu key, e.g. `people.users`."
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Display label."
+                          },
+                          "path": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Frontend route; `null` for a group that only holds sub-menus."
+                          },
+                          "icon": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Icon name hint; `null` when none."
+                          },
+                          "children": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string",
+                                  "description": "Stable menu key, e.g. `people.users`."
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "description": "Display label."
+                                },
+                                "path": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Frontend route; `null` for a group that only holds sub-menus."
+                                },
+                                "icon": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "description": "Icon name hint; `null` when none."
+                                },
+                                "children": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "description": "Always empty at the third level."
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "title",
+                                "path",
+                                "icon",
+                                "children"
+                              ]
+                            },
+                            "description": "Third-level items the caller may see."
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "title",
+                          "path",
+                          "icon",
+                          "children"
+                        ]
+                      },
+                      "description": "Visible sub-menus (empty for a leaf)."
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "title",
+                    "path",
+                    "icon",
+                    "children"
+                  ]
+                },
+                "description": "Top-level menu entries the caller may see, in display order. Groups carry their visible sub-menus in `children`."
+              },
+              "note": {
+                "type": "string",
+                "description": "Reminder that UI hiding is not enforcement."
+              }
+            },
+            "required": [
+              "menu",
+              "note"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `getMyMenu`."
+      },
       "GetPermissionMatrixResponse": {
         "type": "object",
         "properties": {
@@ -67667,6 +67919,109 @@
                         "read"
                       ]
                     },
+                    "note": "UI hiding is never enforcement"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": true,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/me/menu": {
+      "get": {
+        "operationId": "getMyMenu",
+        "summary": "Navigation menu and sub-menus for the caller",
+        "description": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+        "tags": [
+          "Users & Access (IAM)"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMyMenuResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "menu": [
+                      {
+                        "key": "dashboard",
+                        "title": "Dashboard",
+                        "path": "/dashboard",
+                        "icon": "layout-dashboard",
+                        "children": []
+                      },
+                      {
+                        "key": "people",
+                        "title": "People & Access",
+                        "path": null,
+                        "icon": "users",
+                        "children": [
+                          {
+                            "key": "people.users",
+                            "title": "Users",
+                            "path": "/users",
+                            "icon": null,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ],
                     "note": "UI hiding is never enforcement"
                   }
                 }

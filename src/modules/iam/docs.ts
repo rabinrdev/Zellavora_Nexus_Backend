@@ -18,6 +18,16 @@ const memberSummary = z.object({
   roles: z.array(roleRef).describe('Roles currently granted to the member.'),
 });
 
+// Fixed depth (menu → sub-menu → item): the OpenAPI generator cannot express a recursive schema.
+const menuFields = {
+  key: z.string().describe('Stable menu key, e.g. `people.users`.'), title: z.string().describe('Display label.'),
+  path: z.string().nullable().describe('Frontend route; `null` for a group that only holds sub-menus.'),
+  icon: z.string().nullable().describe('Icon name hint; `null` when none.'),
+};
+const menuLeaf = z.object({ ...menuFields, children: z.array(z.string()).max(0).describe('Always empty at the third level.') });
+const menuSub = z.object({ ...menuFields, children: z.array(menuLeaf).describe('Third-level items the caller may see.') });
+const menuNode = z.object({ ...menuFields, children: z.array(menuSub).describe('Visible sub-menus (empty for a leaf).') });
+
 const role = rowOf('roles').describe('A system role (`organizationId` is null) or an organization custom role.');
 const permission = z.object({
   key: z.string().describe('Permission key `resource:action`, e.g. `projects:create`.'),
@@ -112,6 +122,22 @@ documentRoutes({
     }),
     responseExample: { permissions: ['projects:create', 'projects:read'], resources: { projects: ['create', 'read'] }, note: 'UI hiding is never enforcement' },
     description: 'Returns what the signed-in user may do in the active organization. Use it to show or hide actions; the server enforces every permission regardless.',
+  },
+  getMyMenu: {
+    response: z.object({
+      menu: z.array(menuNode).describe('Top-level menu entries the caller may see, in display order. Groups carry their visible sub-menus in `children`.'),
+      note: z.string().describe('Reminder that UI hiding is not enforcement.'),
+    }),
+    responseExample: {
+      menu: [
+        { key: 'dashboard', title: 'Dashboard', path: '/dashboard', icon: 'layout-dashboard', children: [] },
+        { key: 'people', title: 'People & Access', path: null, icon: 'users', children: [
+          { key: 'people.users', title: 'Users', path: '/users', icon: null, children: [] },
+        ] },
+      ],
+      note: 'UI hiding is never enforcement',
+    },
+    description: 'Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller\'s permissions, the organization\'s module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.',
   },
   getPermissionMatrix: {
     response: z.object({

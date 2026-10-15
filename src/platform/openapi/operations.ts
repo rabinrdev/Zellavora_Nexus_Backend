@@ -62,6 +62,7 @@ export const OPERATION_IDS: Readonly<Record<string, string>> = {
   'POST /access-requests/:id/approve': 'approveAccessRequest',
   'POST /access-requests/:id/deny': 'denyAccessRequest',
   'GET /me/permissions': 'getMyPermissions',
+  'GET /me/menu': 'getMyMenu',
   'GET /iam/permission-matrix': 'getPermissionMatrix',
   'GET /iam/users/:id/effective-access': 'getUserEffectiveAccess',
   'GET /iam/access-history': 'listAccessHistory',
