@@ -324,6 +324,34 @@ defineRoute({
 });
 
 defineRoute({
+  method: 'get', path: '/groups/:id/members', module: M, summary: 'List the members of a group', access: { permission: 'groups:read' },
+  params: idParams, response: obj,
+  async handler(c) {
+    const g = await c.trx('user_groups').where({ id: c.params.id, organization_id: c.orgId() }).first();
+    if (!g) throw new AppError('NOT_FOUND', 'Group not found');
+    const rows = await c.trx('user_group_members as ugm')
+      .join('organization_memberships as m', 'm.id', 'ugm.membership_id')
+      .join('users as u', 'u.id', 'm.user_id')
+      .where({ 'ugm.group_id': g.id, 'ugm.organization_id': c.orgId() })
+      .orderBy('u.name')
+      .select('u.id as user_id', 'u.name', 'u.email', 'ugm.created_at as joined_at');
+    return { data: rows.map((r) => ({ userId: r.user_id, name: r.name, email: r.email, joinedAt: r.joined_at })) };
+  },
+});
+
+defineRoute({
+  method: 'get', path: '/groups/:id/roles', module: M, summary: 'List the roles granted through a group', access: { permission: 'groups:read' },
+  params: idParams, response: obj,
+  async handler(c) {
+    const g = await c.trx('user_groups').where({ id: c.params.id, organization_id: c.orgId() }).first();
+    if (!g) throw new AppError('NOT_FOUND', 'Group not found');
+    const rows = await c.trx('group_roles as gr').join('roles as r', 'r.id', 'gr.role_id')
+      .where({ 'gr.group_id': g.id, 'gr.organization_id': c.orgId() }).orderBy('r.name').select('r.id', 'r.key', 'r.name');
+    return { data: rows };
+  },
+});
+
+defineRoute({
   method: 'put', path: '/groups/:id/roles', module: M, summary: 'Set the roles granted via a group',
   access: { permission: 'roles:assign' }, params: idParams, body: z.object({ roleIds: z.array(uuid).max(50) }),
   response: obj, audit: { action: 'group.roles_changed', resourceType: 'group' },
@@ -418,11 +446,11 @@ defineRoute({
 
 defineRoute({
   method: 'get', path: '/me/menu', module: M, summary: 'Navigation menu and sub-menus for the caller',
-  access: 'authenticated', response: obj,
+  access: 'authenticated', scope: 'user', allowSuspendedTenant: true, response: obj,
   async handler(c) {
     const flags: Record<string, boolean> = {};
     for (const key of menuFlagKeys()) {
-      flags[key] = await isFlagEnabled(c.trx, key, { organizationId: c.orgId(), userId: c.auth!.userId });
+      flags[key] = await isFlagEnabled(c.trx, key, { organizationId: c.auth!.organizationId, userId: c.auth!.userId });
     }
     const menu = buildMenu({ permissions: c.auth!.permissions, isPlatformAdmin: c.auth!.isPlatformAdmin, flags });
     return { data: { menu, note: 'UI hiding is never enforcement' } };

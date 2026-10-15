@@ -114,6 +114,16 @@ documentRoutes({
   },
   listProjectRecurringRules: { response: recurring, responseName: 'RecurringTaskRule', collection: true, description: 'Recurring rules of the project.' },
   deleteRecurringRule: { successStatus: 204, description: 'Deactivates the rule (it is not deleted); already generated tasks stay.' },
+  listProjectTemplateTasks: {
+    response: z.object({
+      id: z.string().uuid().describe('Template task id.'), title: z.string().describe('Task title.'),
+      description: z.string().describe('Task description.'), priority: z.enum(['low', 'medium', 'high', 'urgent']).describe('Priority.'),
+      offsetDays: z.number().int().describe('Days after the project start date the task is due.'),
+      estimateHours: z.number().nullable().describe('Estimated hours, or `null`.'), position: z.number().int().describe('Order in the template.'),
+    }),
+    responseName: 'ProjectTemplateTask', collection: true,
+    description: 'Lists the tasks a template creates, in order. `replaceProjectTemplateTasks` replaces the whole list.',
+  },
   replaceProjectTemplateTasks: {
     successStatus: 200, response: z.object({ templateId: uuid.describe('Template id.'), tasks: z.number().int().describe('Number of tasks stored.') }),
     description: 'Replaces the task list of the template (max 500). `offsetDays` is the due date offset from the project start.',

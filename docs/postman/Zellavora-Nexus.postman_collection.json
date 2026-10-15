@@ -2688,6 +2688,57 @@
           }
         },
         {
+          "name": "List the members of a group",
+          "request": {
+            "name": "List the members of a group",
+            "description": {
+              "content": "Lists the members of a group, ordered by name. Use it to show who inherits the roles granted through the group.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "groups",
+                ":groupId",
+                "members"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                  "key": "groupId",
+                  "description": "(Required) Unique identifier (UUID) of the group."
+                }
+              ],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Remove a member from a group",
           "request": {
             "name": "Remove a member from a group",
@@ -2739,6 +2790,57 @@
               }
             ],
             "method": "DELETE"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "List the roles granted through a group",
+          "request": {
+            "name": "List the roles granted through a group",
+            "description": {
+              "content": "Lists the roles currently granted through a group; `replaceGroupRoles` replaces them.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "groups",
+                ":groupId",
+                "roles"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                  "key": "groupId",
+                  "description": "(Required) Unique identifier (UUID) of the group."
+                }
+              ],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
           },
           "response": [],
           "event": [],
@@ -3117,7 +3219,7 @@
           "request": {
             "name": "Navigation menu and sub-menus for the caller",
             "description": {
-              "content": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+              "content": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -6045,6 +6147,48 @@
               }
             ],
             "method": "POST"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Pending ownership transfer involving me",
+          "request": {
+            "name": "Pending ownership transfer involving me",
+            "description": {
+              "content": "Lists the unexpired ownership transfer that involves you, newest first (at most one is pending per organization).\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "organization",
+                "transfer-ownership"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
           },
           "response": [],
           "event": [],
@@ -14324,6 +14468,57 @@
           }
         },
         {
+          "name": "List the tasks of a template",
+          "request": {
+            "name": "List the tasks of a template",
+            "description": {
+              "content": "Lists the tasks a template creates, in order. `replaceProjectTemplateTasks` replaces the whole list.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `project_templates:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "project-templates",
+                ":projectTemplateId",
+                "tasks"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                  "key": "projectTemplateId",
+                  "description": "(Required) Unique identifier (UUID) of the project template."
+                }
+              ],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Replace the task list of a template",
           "request": {
             "name": "Replace the task list of a template",
@@ -15840,6 +16035,103 @@
           }
         },
         {
+          "name": "List my delegations",
+          "request": {
+            "name": "List my delegations",
+            "description": {
+              "content": "Lists your active delegations that have not ended yet, soonest first.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "approvals",
+                "delegations"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Delegate my approvals for a period",
+          "request": {
+            "name": "Delegate my approvals for a period",
+            "description": {
+              "content": "Lets another member decide on the caller's behalf during the period.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Audited** | Yes — `approval.delegation_created` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "approvals",
+                "delegations"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delegateId\": \"4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55\",\n  \"startsAt\": \"2026-03-02T09:30:00.000Z\",\n  \"endsAt\": \"2026-03-02T09:30:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Request with steps and decision history (participants only)",
           "request": {
             "name": "Request with steps and decision history (participants only)",
@@ -16265,61 +16557,6 @@
             "body": {
               "mode": "raw",
               "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": [],
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          }
-        },
-        {
-          "name": "Delegate my approvals for a period",
-          "request": {
-            "name": "Delegate my approvals for a period",
-            "description": {
-              "content": "Lets another member decide on the caller's behalf during the period.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Audited** | Yes — `approval.delegation_created` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
-              "type": "text/plain"
-            },
-            "url": {
-              "path": [
-                "api",
-                "v1",
-                "approvals",
-                "delegations"
-              ],
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [],
-              "variable": [],
-              "raw": "{{baseUrl}}"
-            },
-            "header": [
-              {
-                "disabled": false,
-                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
-                "key": "X-Request-Id",
-                "value": "req_7f3a9c2e41b84d6e"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "method": "POST",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"delegateId\": \"4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55\",\n  \"startsAt\": \"2026-03-02T09:30:00.000Z\",\n  \"endsAt\": \"2026-03-02T09:30:00.000Z\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

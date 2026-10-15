@@ -7046,6 +7046,295 @@
         ],
         "description": "Success response of `addGroupMember`."
       },
+      "GroupMember": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Member user id."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address."
+          },
+          "joinedAt": {
+            "type": "string",
+            "description": "When the member was added (ISO-8601 UTC)."
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "email",
+          "joinedAt"
+        ],
+        "description": "Group member."
+      },
+      "GroupMemberListResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupMember"
+            },
+            "description": "The data."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `listGroupMembers`."
+      },
+      "GroupRole": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Role id."
+          },
+          "key": {
+            "type": "string",
+            "description": "Role key."
+          },
+          "name": {
+            "type": "string",
+            "description": "Role name."
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name"
+        ],
+        "description": "Group role."
+      },
+      "GroupRoleListResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupRole"
+            },
+            "description": "The data."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `listGroupRoles`."
+      },
       "ReplaceGroupRolesRequest": {
         "type": "object",
         "properties": {
@@ -12405,6 +12694,174 @@
           "data"
         ],
         "description": "Success response of `resendInvitation`."
+      },
+      "PendingOwnershipTransfer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Transfer id; pass it to `acceptOwnershipTransfer` or `cancelOwnershipTransfer`."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "incoming",
+              "outgoing"
+            ],
+            "description": "`incoming` when you are the proposed owner, `outgoing` when you started it."
+          },
+          "fromUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Current owner."
+          },
+          "fromName": {
+            "type": "string",
+            "description": "Current owner name."
+          },
+          "toUserId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Proposed owner."
+          },
+          "toName": {
+            "type": "string",
+            "description": "Proposed owner name."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the offer lapses (ISO-8601 UTC)."
+          }
+        },
+        "required": [
+          "id",
+          "direction",
+          "fromUserId",
+          "fromName",
+          "toUserId",
+          "toName",
+          "expiresAt"
+        ],
+        "description": "Pending ownership transfer."
+      },
+      "PendingOwnershipTransferListResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingOwnershipTransfer"
+            },
+            "description": "The data."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `getPendingOwnershipTransfer`."
       },
       "StartOwnershipTransferRequest": {
         "type": "object",
@@ -30677,6 +31134,177 @@
         },
         "description": "Request body of `updateProjectTemplate`."
       },
+      "ProjectTemplateTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Template task id."
+          },
+          "title": {
+            "type": "string",
+            "description": "Task title."
+          },
+          "description": {
+            "type": "string",
+            "description": "Task description."
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "description": "Priority."
+          },
+          "offsetDays": {
+            "type": "integer",
+            "description": "Days after the project start date the task is due."
+          },
+          "estimateHours": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Estimated hours, or `null`."
+          },
+          "position": {
+            "type": "integer",
+            "description": "Order in the template."
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "priority",
+          "offsetDays",
+          "estimateHours",
+          "position"
+        ],
+        "description": "Project template task."
+      },
+      "ProjectTemplateTaskListResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectTemplateTask"
+            },
+            "description": "The data."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `listProjectTemplateTasks`."
+      },
       "ReplaceProjectTemplateTasksRequest": {
         "type": "object",
         "properties": {
@@ -32532,6 +33160,159 @@
           "meta"
         ],
         "description": "Success response of `listApprovalInbox`."
+      },
+      "ApprovalDelegation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Delegation id; pass it to `deleteApprovalDelegation`."
+          },
+          "delegateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Member acting on your behalf."
+          },
+          "delegateName": {
+            "type": "string",
+            "description": "Display name of the delegate."
+          },
+          "startsAt": {
+            "type": "string",
+            "description": "Start of the period (ISO-8601 UTC)."
+          },
+          "endsAt": {
+            "type": "string",
+            "description": "End of the period (ISO-8601 UTC)."
+          }
+        },
+        "required": [
+          "id",
+          "delegateId",
+          "delegateName",
+          "startsAt",
+          "endsAt"
+        ],
+        "description": "Approval delegation."
+      },
+      "ApprovalDelegationListResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalDelegation"
+            },
+            "description": "The data."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `listApprovalDelegations`."
       },
       "ApprovalRequestDetail": {
         "type": "object",
@@ -67148,6 +67929,110 @@
         "x-idempotent": false,
         "x-rate-limit": "default",
         "x-release": "MVP"
+      },
+      "get": {
+        "operationId": "listGroupMembers",
+        "summary": "List the members of a group",
+        "description": "Lists the members of a group, ordered by name. Use it to show who inherits the roles granted through the group.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+        "tags": [
+          "Users & Access (IAM)"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unique identifier (UUID) of the group.",
+              "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+            },
+            "required": true,
+            "description": "Unique identifier (UUID) of the group.",
+            "name": "groupId",
+            "in": "path",
+            "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupMemberListResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "userId": "5e0f6a52-7d1e-4b0c-9a4e-1f2d3c4b5a11",
+                      "name": "Acme Design Studio",
+                      "email": "amelia.hart@example.test",
+                      "joinedAt": "2026-03-02T09:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "x-required-permission": "groups:read",
+        "x-tenant-scoped": true,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
       }
     },
     "/api/v1/groups/{groupId}/members/{userId}": {
@@ -67237,6 +68122,109 @@
       }
     },
     "/api/v1/groups/{groupId}/roles": {
+      "get": {
+        "operationId": "listGroupRoles",
+        "summary": "List the roles granted through a group",
+        "description": "Lists the roles currently granted through a group; `replaceGroupRoles` replaces them.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+        "tags": [
+          "Users & Access (IAM)"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unique identifier (UUID) of the group.",
+              "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+            },
+            "required": true,
+            "description": "Unique identifier (UUID) of the group.",
+            "name": "groupId",
+            "in": "path",
+            "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRoleListResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                      "key": "example_key",
+                      "name": "Acme Design Studio"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "x-required-permission": "groups:read",
+        "x-tenant-scoped": true,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      },
       "put": {
         "operationId": "replaceGroupRoles",
         "summary": "Set the roles granted via a group",
@@ -67968,7 +68956,7 @@
       "get": {
         "operationId": "getMyMenu",
         "summary": "Navigation menu and sub-menus for the caller",
-        "description": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+        "description": "Returns the navigation tree for the signed-in user in the active organization. Entries are filtered by the caller's permissions, the organization's module flags and platform-admin status; a group with no visible children is omitted. Render it as-is: menu content is owned by the backend.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
         "tags": [
           "Users & Access (IAM)"
         ],
@@ -68060,7 +69048,7 @@
           }
         ],
         "x-required-permission": null,
-        "x-tenant-scoped": true,
+        "x-tenant-scoped": false,
         "x-audited": false,
         "x-idempotent": false,
         "x-rate-limit": "default",
@@ -71883,6 +72871,94 @@
       }
     },
     "/api/v1/organization/transfer-ownership": {
+      "get": {
+        "operationId": "getPendingOwnershipTransfer",
+        "summary": "Pending ownership transfer involving me",
+        "description": "Lists the unexpired ownership transfer that involves you, newest first (at most one is pending per organization).\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
+        "tags": [
+          "Organizations"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingOwnershipTransferListResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                      "direction": "incoming",
+                      "fromUserId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                      "fromName": "example from name",
+                      "toUserId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                      "toName": "example to name",
+                      "expiresAt": "2026-03-02T09:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": true,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      },
       "post": {
         "operationId": "startOwnershipTransfer",
         "summary": "Start an ownership transfer (password re-confirmation)",
@@ -87592,6 +88668,117 @@
       }
     },
     "/api/v1/project-templates/{projectTemplateId}/tasks": {
+      "get": {
+        "operationId": "listProjectTemplateTasks",
+        "summary": "List the tasks of a template",
+        "description": "Lists the tasks a template creates, in order. `replaceProjectTemplateTasks` replaces the whole list.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `project_templates:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
+        "tags": [
+          "Projects & Tasks"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Unique identifier (UUID) of the project template.",
+              "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+            },
+            "required": true,
+            "description": "Unique identifier (UUID) of the project template.",
+            "name": "projectTemplateId",
+            "in": "path",
+            "example": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectTemplateTaskListResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                      "title": "Quarterly website refresh",
+                      "description": "Refresh the marketing site for Q2.",
+                      "priority": "low",
+                      "offsetDays": 1,
+                      "estimateHours": 1,
+                      "position": 1
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "402": {
+            "$ref": "#/components/responses/PlanLimitExceeded"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "x-required-permission": "project_templates:read",
+        "x-tenant-scoped": true,
+        "x-feature-flag": "module.projects",
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "V1"
+      },
       "put": {
         "operationId": "replaceProjectTemplateTasks",
         "summary": "Replace the task list of a template",
@@ -88930,6 +90117,209 @@
         "x-release": "V1"
       }
     },
+    "/api/v1/approvals/delegations": {
+      "get": {
+        "operationId": "listApprovalDelegations",
+        "summary": "List my delegations",
+        "description": "Lists your active delegations that have not ended yet, soonest first.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
+        "tags": [
+          "Approvals"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalDelegationListResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                      "delegateId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                      "delegateName": "example delegate name",
+                      "startsAt": "2026-03-02T09:30:00.000Z",
+                      "endsAt": "2026-03-02T09:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "402": {
+            "$ref": "#/components/responses/PlanLimitExceeded"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": "approvals:act",
+        "x-tenant-scoped": true,
+        "x-feature-flag": "module.approvals",
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "V1"
+      },
+      "post": {
+        "operationId": "createApprovalDelegation",
+        "summary": "Delegate my approvals for a period",
+        "description": "Lets another member decide on the caller's behalf during the period.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Audited** | Yes — `approval.delegation_created` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
+        "tags": [
+          "Approvals"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApprovalDelegationRequest"
+              },
+              "example": {
+                "delegateId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                "startsAt": "2026-03-02T09:30:00.000Z",
+                "endsAt": "2026-03-02T09:30:00.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateApprovalDelegationResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                    "delegateId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
+                    "startsAt": "2026-03-02T09:30:00.000Z",
+                    "endsAt": "2026-03-02T09:30:00.000Z"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "402": {
+            "$ref": "#/components/responses/PlanLimitExceeded"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": "approvals:act",
+        "x-tenant-scoped": true,
+        "x-feature-flag": "module.approvals",
+        "x-audited": "approval.delegation_created",
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "V1"
+      }
+    },
     "/api/v1/approvals/{approvalId}": {
       "get": {
         "operationId": "getApprovalRequestById",
@@ -89809,116 +91199,6 @@
         "x-tenant-scoped": true,
         "x-feature-flag": "module.approvals",
         "x-audited": "approval.resubmitted",
-        "x-idempotent": false,
-        "x-rate-limit": "default",
-        "x-release": "V1"
-      }
-    },
-    "/api/v1/approvals/delegations": {
-      "post": {
-        "operationId": "createApprovalDelegation",
-        "summary": "Delegate my approvals for a period",
-        "description": "Lets another member decide on the caller's behalf during the period.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `approvals:act` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.approvals` (disabled modules return `404 NOT_FOUND`) |\n| **Audited** | Yes — `approval.delegation_created` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Approvals · V1_",
-        "tags": [
-          "Approvals"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateApprovalDelegationRequest"
-              },
-              "example": {
-                "delegateId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
-                "startsAt": "2026-03-02T09:30:00.000Z",
-                "endsAt": "2026-03-02T09:30:00.000Z"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateApprovalDelegationResponse"
-                },
-                "example": {
-                  "errorMessage": [
-                    {
-                      "id": 0,
-                      "msg": "Resource not found",
-                      "msgType": "Error",
-                      "code": "NOT_FOUND",
-                      "field": "body.name",
-                      "issue": "Too small: expected string to have >=2 characters"
-                    }
-                  ],
-                  "infoMessage": {
-                    "id": 0,
-                    "msg": null,
-                    "msgType": "Information"
-                  },
-                  "hasError": false,
-                  "data": {
-                    "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
-                    "delegateId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
-                    "startsAt": "2026-03-02T09:30:00.000Z",
-                    "endsAt": "2026-03-02T09:30:00.000Z"
-                  }
-                }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthenticated"
-          },
-          "402": {
-            "$ref": "#/components/responses/PlanLimitExceeded"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          },
-          "503": {
-            "$ref": "#/components/responses/Maintenance"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/RequestId"
-          }
-        ],
-        "x-required-permission": "approvals:act",
-        "x-tenant-scoped": true,
-        "x-feature-flag": "module.approvals",
-        "x-audited": "approval.delegation_created",
         "x-idempotent": false,
         "x-rate-limit": "default",
         "x-release": "V1"

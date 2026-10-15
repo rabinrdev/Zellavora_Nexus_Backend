@@ -67,6 +67,17 @@ documentRoutes({
   },
   revokeInvitation: { successStatus: 200, response: decision, description: 'Revokes a pending invitation. Already used or revoked invitations return `404`.' },
   resendInvitation: { successStatus: 200, response: decision, description: 'Issues a fresh token and extends the expiry; the old token stops working.' },
+  getPendingOwnershipTransfer: {
+    response: z.object({
+      id: z.string().uuid().describe('Transfer id; pass it to `acceptOwnershipTransfer` or `cancelOwnershipTransfer`.'),
+      direction: z.enum(['incoming', 'outgoing']).describe('`incoming` when you are the proposed owner, `outgoing` when you started it.'),
+      fromUserId: z.string().uuid().describe('Current owner.'), fromName: z.string().describe('Current owner name.'),
+      toUserId: z.string().uuid().describe('Proposed owner.'), toName: z.string().describe('Proposed owner name.'),
+      expiresAt: z.string().describe('When the offer lapses (ISO-8601 UTC).'),
+    }),
+    responseName: 'PendingOwnershipTransfer', collection: true,
+    description: 'Lists the unexpired ownership transfer that involves you, newest first (at most one is pending per organization).',
+  },
   startOwnershipTransfer: {
     successStatus: 201, response: z.object({ id: uuid.describe('Transfer id.'), status: z.literal('pending').describe('Initial status.') }),
     description: 'Only the current owner can start a transfer and must re-enter their password. The recipient must be an active member and has 7 days to call `acceptOwnershipTransfer`. Any older pending transfer is cancelled.',

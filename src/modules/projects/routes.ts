@@ -534,6 +534,22 @@ crudResource({
 });
 
 defineRoute({
+  method: 'get', path: '/project-templates/:id/tasks', module: M, moduleFlag: FLAG, summary: 'List the tasks of a template',
+  access: { permission: 'project_templates:read' }, params: idParams, response: obj,
+  async handler(c) {
+    const tpl = await c.trx('project_templates').where({ id: c.params.id, organization_id: c.orgId() }).whereNull('deleted_at').first();
+    if (!tpl) throw new AppError('NOT_FOUND', 'Template not found');
+    const rows = await c.trx('project_template_tasks').where({ template_id: tpl.id, organization_id: c.orgId() }).orderBy('position');
+    return {
+      data: rows.map((r) => ({
+        id: r.id, title: r.title, description: r.description, priority: r.priority,
+        offsetDays: r.offset_days, estimateHours: r.estimate_hours === null ? null : Number(r.estimate_hours), position: r.position,
+      })),
+    };
+  },
+});
+
+defineRoute({
   method: 'put', path: '/project-templates/:id/tasks', module: M, moduleFlag: FLAG, summary: 'Replace the task list of a template',
   access: { permission: 'project_templates:update' }, params: idParams,
   body: z.object({ tasks: z.array(z.object({

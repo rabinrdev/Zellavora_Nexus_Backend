@@ -53,5 +53,16 @@ documentRoutes({
     response: z.object({ id: uuid.describe('Delegation id.'), delegateId: uuid.describe('Delegate.'), startsAt: z.string().describe('Start (ISO-8601).'), endsAt: z.string().describe('End (ISO-8601).') }),
     description: 'Lets another member decide on the caller\'s behalf during the period.',
   },
+  listApprovalDelegations: {
+    response: z.object({
+      id: z.string().uuid().describe('Delegation id; pass it to `deleteApprovalDelegation`.'),
+      delegateId: z.string().uuid().describe('Member acting on your behalf.'),
+      delegateName: z.string().describe('Display name of the delegate.'),
+      startsAt: z.string().describe('Start of the period (ISO-8601 UTC).'),
+      endsAt: z.string().describe('End of the period (ISO-8601 UTC).'),
+    }),
+    responseName: 'ApprovalDelegation', collection: true,
+    description: 'Lists your active delegations that have not ended yet, soonest first.',
+  },
   deleteApprovalDelegation: { successStatus: 204, description: 'Revokes a delegation immediately.' },
 });

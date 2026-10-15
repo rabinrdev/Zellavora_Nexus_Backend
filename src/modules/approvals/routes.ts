@@ -256,6 +256,25 @@ async function participantRequest(c: HandlerCtx, id: string) {
   return r;
 }
 
+// Registered before `/approvals/:id` so the literal path is not read as an id.
+defineRoute({
+  method: 'get', path: '/approvals/delegations', module: M, moduleFlag: FLAG, summary: 'List my delegations',
+  access: { permission: 'approvals:act' }, response: obj,
+  async handler(c) {
+    const rows = await c.trx('approval_delegations as d')
+      .join('users as u', 'u.id', 'd.delegate_id')
+      .where({ 'd.organization_id': c.orgId(), 'd.delegator_id': c.auth!.userId, 'd.active': true })
+      .where('d.ends_at', '>', c.svc.now())
+      .orderBy('d.starts_at')
+      .select('d.id', 'd.delegate_id', 'u.name as delegate_name', 'd.starts_at', 'd.ends_at');
+    return {
+      data: rows.map((r) => ({
+        id: r.id, delegateId: r.delegate_id, delegateName: r.delegate_name, startsAt: r.starts_at, endsAt: r.ends_at,
+      })),
+    };
+  },
+});
+
 defineRoute({
   method: 'get', path: '/approvals/:id', module: M, moduleFlag: FLAG, summary: 'Request with steps and decision history (participants only)',
   access: { permission: 'approvals:read' }, params: idParams, response: obj,

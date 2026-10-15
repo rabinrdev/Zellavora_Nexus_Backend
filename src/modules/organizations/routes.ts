@@ -229,6 +229,28 @@ defineRoute({
 // ---- ownership transfer (F-193) -----------------------------------------------------------------------------
 
 defineRoute({
+  method: 'get', path: '/organization/transfer-ownership', module: M, summary: 'Pending ownership transfer involving me',
+  access: 'authenticated', response: obj,
+  async handler(c) {
+    const uid = c.auth!.userId;
+    const rows = await c.trx('ownership_transfers as t')
+      .join('users as f', 'f.id', 't.from_user_id')
+      .join('users as r', 'r.id', 't.to_user_id')
+      .where({ 't.organization_id': c.orgId(), 't.status': 'pending' })
+      .where('t.expires_at', '>', c.svc.now())
+      .where((w) => w.where('t.from_user_id', uid).orWhere('t.to_user_id', uid))
+      .orderBy('t.created_at', 'desc')
+      .select('t.id', 't.from_user_id', 'f.name as from_name', 't.to_user_id', 'r.name as to_name', 't.expires_at');
+    return {
+      data: rows.map((r) => ({
+        id: r.id, direction: r.to_user_id === uid ? 'incoming' : 'outgoing',
+        fromUserId: r.from_user_id, fromName: r.from_name, toUserId: r.to_user_id, toName: r.to_name, expiresAt: r.expires_at,
+      })),
+    };
+  },
+});
+
+defineRoute({
   method: 'post', path: '/organization/transfer-ownership', module: M, summary: 'Start an ownership transfer (password re-confirmation)',
   access: { permission: 'organization:transfer' }, body: z.object({ newOwnerUserId: uuid, password: z.string().min(1).max(256) }),
   response: obj, audit: { action: 'organization.ownership_transfer_requested', resourceType: 'organization' },

@@ -121,7 +121,11 @@ defineRoute({
     const q = c.query as z.infer<typeof docList>;
     const p = await principals(c);
     const me = c.auth!.userId;
-    const qb = c.trx('documents').where({ organization_id: c.orgId() }).whereNull('deleted_at').select('documents.*');
+    const trash = (q as { deleted?: string }).deleted === 'only';
+    if (trash && !c.auth!.permissions.has('documents:delete')) throw new AppError('FORBIDDEN', 'You do not have permission to perform this action');
+    const qb = c.trx('documents').where({ organization_id: c.orgId() }).select('documents.*');
+    if (trash) qb.whereNotNull('deleted_at');
+    else qb.whereNull('deleted_at');
     if (!c.auth!.permissions.has('documents:manage_all')) {
       qb.where((w) => w.where('owner_id', me)
         .orWhereNotExists(c.trx('document_acl as a').whereRaw('a.document_id = documents.id').select(c.trx.raw('1')))

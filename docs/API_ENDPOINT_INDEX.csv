@@ -47,8 +47,10 @@ Users & Access (IAM),createGroup,POST,/api/v1/groups,Create a group,groups:creat
 Users & Access (IAM),getGroupById,GET,/api/v1/groups/{groupId},Get a group,groups:read,,200 GroupResponse,401 403 404 422 429 500 503,,
 Users & Access (IAM),updateGroup,PATCH,/api/v1/groups/{groupId},Update a group,groups:update,UpdateGroupRequest,200 GroupResponse,401 403 404 409 412 422 429 500 503,,
 Users & Access (IAM),deleteGroup,DELETE,/api/v1/groups/{groupId},Delete a group,groups:delete,,204,401 403 404 409 422 429 500 503,,
+Users & Access (IAM),listGroupMembers,GET,/api/v1/groups/{groupId}/members,List the members of a group,groups:read,,200 GroupMemberListResponse,401 403 404 422 429 500 503,,
 Users & Access (IAM),addGroupMember,POST,/api/v1/groups/{groupId}/members,Add a member to a group,groups:update,AddGroupMemberRequest,201 AddGroupMemberResponse,401 403 404 409 422 429 500 503,,
 Users & Access (IAM),removeGroupMember,DELETE,/api/v1/groups/{groupId}/members/{userId},Remove a member from a group,groups:update,,204,401 403 404 422 429 500 503,,
+Users & Access (IAM),listGroupRoles,GET,/api/v1/groups/{groupId}/roles,List the roles granted through a group,groups:read,,200 GroupRoleListResponse,401 403 404 422 429 500 503,,
 Users & Access (IAM),replaceGroupRoles,PUT,/api/v1/groups/{groupId}/roles,Set the roles granted via a group,roles:assign,ReplaceGroupRolesRequest,200 ReplaceGroupRolesResponse,401 403 404 422 429 500 503,,
 Users & Access (IAM),listAccessRequests,GET,/api/v1/access-requests,"List access requests (own, or all with approve permission)",access_requests:read,,200 AccessRequestListResponse,401 403 422 429 500 503,,
 Users & Access (IAM),createAccessRequest,POST,/api/v1/access-requests,Request a role,access_requests:create,CreateAccessRequestRequest,201 CreateAccessRequestResponse,401 403 422 429 500 503,,
@@ -88,6 +90,7 @@ Organizations,listInvitations,GET,/api/v1/invitations,List invitations,invitatio
 Organizations,createInvitation,POST,/api/v1/invitations,Invite a person to the organization,invitations:create,CreateInvitationRequest,201 CreateInvitationResponse,401 402 403 422 429 500 503,,
 Organizations,revokeInvitation,POST,/api/v1/invitations/{invitationId}/revoke,Revoke a pending invitation,invitations:delete,,200 RevokeInvitationResponse,401 403 404 422 429 500 503,,
 Organizations,resendInvitation,POST,/api/v1/invitations/{invitationId}/resend,Resend an invitation with a fresh token,invitations:create,,200 ResendInvitationResponse,401 403 404 422 429 500 503,,
+Organizations,getPendingOwnershipTransfer,GET,/api/v1/organization/transfer-ownership,Pending ownership transfer involving me,any signed-in user,,200 PendingOwnershipTransferListResponse,401 403 429 500 503,,
 Organizations,startOwnershipTransfer,POST,/api/v1/organization/transfer-ownership,Start an ownership transfer (password re-confirmation),organization:transfer,StartOwnershipTransferRequest,201 StartOwnershipTransferResponse,401 403 422 429 500 503,,
 Organizations,acceptOwnershipTransfer,POST,/api/v1/organization/transfer-ownership/{transferOwnershipId}/accept,Accept an ownership transfer (recipient),any signed-in user,,200 AcceptOwnershipTransferResponse,401 403 404 409 422 429 500 503,,
 Organizations,cancelOwnershipTransfer,POST,/api/v1/organization/transfer-ownership/{transferOwnershipId}/cancel,Cancel a pending transfer,organization:transfer,,200 CancelOwnershipTransferResponse,401 403 404 422 429 500 503,,
@@ -216,6 +219,7 @@ Projects & Tasks,getProjectTemplateById,GET,/api/v1/project-templates/{projectTe
 Projects & Tasks,updateProjectTemplate,PATCH,/api/v1/project-templates/{projectTemplateId},Update a project template,project_templates:update,UpdateProjectTemplateRequest,200 ProjectTemplateResponse,401 402 403 404 409 412 422 429 500 503,module.projects,
 Projects & Tasks,deleteProjectTemplate,DELETE,/api/v1/project-templates/{projectTemplateId},Delete a project template,project_templates:delete,,204,401 402 403 404 409 422 429 500 503,module.projects,
 Projects & Tasks,restoreProjectTemplate,POST,/api/v1/project-templates/{projectTemplateId}/restore,Restore a project template,project_templates:delete,,200 ProjectTemplateResponse,401 402 403 404 409 422 429 500 503,module.projects,
+Projects & Tasks,listProjectTemplateTasks,GET,/api/v1/project-templates/{projectTemplateId}/tasks,List the tasks of a template,project_templates:read,,200 ProjectTemplateTaskListResponse,401 402 403 404 422 429 500 503,module.projects,
 Projects & Tasks,replaceProjectTemplateTasks,PUT,/api/v1/project-templates/{projectTemplateId}/tasks,Replace the task list of a template,project_templates:update,ReplaceProjectTemplateTasksRequest,200 ReplaceProjectTemplateTasksResponse,401 402 403 404 422 429 500 503,module.projects,
 Projects & Tasks,createProjectFromTemplate,POST,/api/v1/projects/from-template,Create a project from a template,projects:create,CreateProjectFromTemplateRequest,201 CreateProjectFromTemplateResponse,401 402 403 404 409 422 429 500 503,module.projects,optional
 Projects & Tasks,getProjectProgress,GET,/api/v1/projects/{projectId}/progress,"Progress: tasks, estimates vs actual hours",projects:read,,200 ProjectProgressResponse,401 402 403 404 422 429 500 503,module.projects,
@@ -226,6 +230,8 @@ Approvals,replaceApprovalTemplate,PUT,/api/v1/approval-templates/{approvalTempla
 Approvals,createApprovalRequest,POST,/api/v1/approvals,Create an approval request from a template,approvals:create,CreateApprovalRequestRequest,201 CreateApprovalRequestResponse,401 402 403 404 409 422 429 500 503,module.approvals,optional
 Approvals,listApprovalInbox,GET,/api/v1/approvals/inbox,Requests awaiting my decision,approvals:read,,200 ApprovalRequestListResponse,401 402 403 404 422 429 500 503,module.approvals,
 Approvals,listApprovalHistory,GET,/api/v1/approvals/history,Requests I created or decided,approvals:read,,200 ApprovalRequestListResponse,401 402 403 404 422 429 500 503,module.approvals,
+Approvals,listApprovalDelegations,GET,/api/v1/approvals/delegations,List my delegations,approvals:act,,200 ApprovalDelegationListResponse,401 402 403 404 429 500 503,module.approvals,
+Approvals,createApprovalDelegation,POST,/api/v1/approvals/delegations,Delegate my approvals for a period,approvals:act,CreateApprovalDelegationRequest,201 CreateApprovalDelegationResponse,401 402 403 404 422 429 500 503,module.approvals,
 Approvals,getApprovalRequestById,GET,/api/v1/approvals/{approvalId},Request with steps and decision history (participants only),approvals:read,,200 ApprovalRequestDetailResponse,401 402 403 404 422 429 500 503,module.approvals,
 Approvals,approveApprovalRequest,POST,/api/v1/approvals/{approvalId}/approve,Approve a request,approvals:act,ApproveApprovalRequestRequest,200 ApproveApprovalRequestResponse,401 402 403 404 409 422 429 500 503,module.approvals,optional
 Approvals,rejectApprovalRequest,POST,/api/v1/approvals/{approvalId}/reject,Reject a request,approvals:act,RejectApprovalRequestRequest,200 RejectApprovalRequestResponse,401 402 403 404 409 422 429 500 503,module.approvals,optional
@@ -233,7 +239,6 @@ Approvals,requestApprovalChanges,POST,/api/v1/approvals/{approvalId}/request-cha
 Approvals,reassignApprovalRequest,POST,/api/v1/approvals/{approvalId}/reassign,Reassign my approval to another member,approvals:act,ReassignApprovalRequestRequest,200 ReassignApprovalRequestResponse,401 402 403 404 422 429 500 503,module.approvals,
 Approvals,cancelApprovalRequest,POST,/api/v1/approvals/{approvalId}/cancel,Cancel my pending request,approvals:create,,200 CancelApprovalRequestResponse,401 402 403 404 409 422 429 500 503,module.approvals,
 Approvals,resubmitApprovalRequest,POST,/api/v1/approvals/{approvalId}/resubmit,Resubmit after changes were requested,approvals:create,ResubmitApprovalRequestRequest,200 ResubmitApprovalRequestResponse,401 402 403 404 409 422 429 500 503,module.approvals,
-Approvals,createApprovalDelegation,POST,/api/v1/approvals/delegations,Delegate my approvals for a period,approvals:act,CreateApprovalDelegationRequest,201 CreateApprovalDelegationResponse,401 402 403 404 422 429 500 503,module.approvals,
 Approvals,deleteApprovalDelegation,DELETE,/api/v1/approvals/delegations/{delegationId},Revoke a delegation,approvals:act,,204,401 402 403 404 422 429 500 503,module.approvals,
 Timesheets,getMyTimesheet,GET,/api/v1/timesheets/mine,My timesheet for a week (created on first access),timesheets:read,,200 TimesheetDetailResponse,401 402 403 404 422 429 500 503,module.timesheets,
 Timesheets,listTeamTimesheets,GET,/api/v1/timesheets/team,Timesheets of the teams I lead,timesheets:review,,200 TimesheetListResponse,401 402 403 404 422 429 500 503,module.timesheets,

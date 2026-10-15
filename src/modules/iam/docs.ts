@@ -88,6 +88,19 @@ documentRoutes({
     description: 'Replaces the permission set of a custom role. Everyone holding the role gets the change on their next request (permission version bump). Unknown keys return `422`.',
   },
   listPermissions: { response: permission, responseName: 'Permission', collection: true, description: 'The permission catalog: every permission key the API knows, derived from the route definitions.' },
+  listGroupMembers: {
+    response: z.object({
+      userId: uuid.describe('Member user id.'), name: z.string().describe('Display name.'),
+      email: z.string().describe('Email address.'), joinedAt: z.string().describe('When the member was added (ISO-8601 UTC).'),
+    }),
+    responseName: 'GroupMember', collection: true,
+    description: 'Lists the members of a group, ordered by name. Use it to show who inherits the roles granted through the group.',
+  },
+  listGroupRoles: {
+    response: z.object({ id: uuid.describe('Role id.'), key: z.string().describe('Role key.'), name: z.string().describe('Role name.') }),
+    responseName: 'GroupRole', collection: true,
+    description: 'Lists the roles currently granted through a group; `replaceGroupRoles` replaces them.',
+  },
   addGroupMember: {
     successStatus: 201, response: z.object({ groupId: uuid.describe('Group.'), userId: uuid.describe('Added member.') }),
     description: 'Adds an active member to a group. Duplicates return `409`.',

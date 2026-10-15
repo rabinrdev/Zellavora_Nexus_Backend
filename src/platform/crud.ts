@@ -107,8 +107,14 @@ export function crudResource<S extends ZodRawShape>(cfg: CrudConfig<S>): void {
       ...common, method: 'get', path: cfg.path, summary: `List ${plural}`, access: perm('read'),
       query: listQuerySchema, list: listDocs,
       async handler(c) {
-        const qb = base(c).select(`${cfg.table}.*`);
         const q = c.query as ListQuery;
+        const trash = q.deleted === 'only';
+        if (trash) {
+          if (!cfg.softDelete) throw new AppError('VALIDATION_FAILED', 'This resource has no trash', [{ field: 'deleted', issue: 'unsupported' }]);
+          if (!c.auth!.permissions.has(`${cfg.resource}:delete`)) throw new AppError('FORBIDDEN', 'You do not have permission to perform this action');
+        }
+        const qb = base(c, trash).select(`${cfg.table}.*`);
+        if (trash) qb.whereNotNull(`${cfg.table}.deleted_at`);
         if (q.q && cfg.searchColumns?.length) {
           qb.where((w) => {
             for (const col of cfg.searchColumns!) w.orWhereILike(col, `%${q.q!.replace(/[%_\\]/g, '\\$&')}%`);

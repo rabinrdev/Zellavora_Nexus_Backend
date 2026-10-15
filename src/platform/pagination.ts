@@ -19,6 +19,8 @@ export const listQuerySchema = z
     pageSize: z.coerce.number().int().min(1).max(100).optional(),
     sort: z.string().max(64).optional(),
     q: z.string().max(200).optional(),
+    /** `only` lists soft-deleted rows (trash) for resources that support restore; needs the resource delete permission. */
+    deleted: z.enum(['only']).optional(),
     filter: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
   })
   .loose();
