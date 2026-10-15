@@ -30,6 +30,8 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_PREFIX: z.string().default(''),
   SCAN_DRIVER: z.enum(['stub', 'clamd']).default('stub'),
+  /** Production only: allow SCAN_DRIVER=stub (uploads are NOT malware-scanned). For hosts that cannot reach a clamd server. */
+  ALLOW_UNSCANNED_UPLOADS: bool.default('false'),
   CLAMD_HOST: z.string().default('127.0.0.1'),
   CLAMD_PORT: z.coerce.number().int().default(3310),
   ERROR_TRACKING_DSN: z.string().url().optional(),
@@ -70,7 +72,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     if (env.MAIL_DRIVER === 'console') throw new Error('Invalid environment configuration: MAIL_DRIVER=console is not allowed in production');
     if (env.CORS_ORIGINS.length === 0) throw new Error('Invalid environment configuration: CORS_ORIGINS required in production');
     if (env.RATE_LIMIT_AUTH_POINTS !== undefined) throw new Error('Invalid environment configuration: RATE_LIMIT_AUTH_POINTS is not allowed in production');
-    if (env.SCAN_DRIVER === 'stub') throw new Error('Invalid environment configuration: SCAN_DRIVER=stub is not allowed in production');
+    if (env.SCAN_DRIVER === 'stub' && !env.ALLOW_UNSCANNED_UPLOADS) throw new Error('Invalid environment configuration: SCAN_DRIVER=stub is not allowed in production (set SCAN_DRIVER=clamd, or ALLOW_UNSCANNED_UPLOADS=true to accept unscanned uploads)');
   }
   if (!!env.DOCS_BASIC_AUTH_USER !== !!env.DOCS_BASIC_AUTH_PASS) {
     throw new Error('Invalid environment configuration: DOCS_BASIC_AUTH_USER and DOCS_BASIC_AUTH_PASS must be set together');
