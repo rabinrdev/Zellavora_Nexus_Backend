@@ -15,6 +15,15 @@ documentRoutes({
     description: 'Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: "mfaCode", issue: "mfa_required" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.',
     requestExamples: { password: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9' }, withMfa: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9', mfaCode: '123456' } },
   },
+  getLoginToken: {
+    description: 'Step 1 of the encrypted sign-in. Returns a short-lived `token` (5 minutes) plus the AES-256 `key` and 16-byte `iv` (both base64) to encrypt the login payload with. Stateless: nothing is stored server-side. Rate limited per IP.',
+    responseExample: { token: 'v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl', key: 'bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=', iv: 'bXktMTYtYnl0ZS1pdi0xMg==', expiresIn: 300 },
+  },
+  loginWithEncryptedPayload: {
+    errors: [401],
+    description: 'Step 2 of the encrypted sign-in. Send the `token` from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves exactly like `loginWithPassword` and returns the same token bundle. An unreadable or expired token/payload returns `422` (`details[0].issue = "invalid_or_expired"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(key), { iv: CryptoJS.enc.Base64.parse(iv), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.',
+    requestExamples: { encrypted: { token: 'v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl', data: 'U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==' } },
+  },
   refreshAccessToken: { errors: [401], description: 'Exchanges the refresh token for a new access token **and a new refresh token** (rotation). Re-using an already rotated token revokes the whole session family (`401`).' },
   logoutCurrentSession: { description: 'Revokes the current session; its tokens stop working immediately.' },
   logoutAllSessions: { description: 'Revokes every session of the user on all devices.' },

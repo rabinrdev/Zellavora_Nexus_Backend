@@ -646,6 +646,115 @@ components:
       required:
         - data
       description: Success response of `loginWithPassword`.
+    GetLoginTokenResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: Opaque token issued by the API.
+            key:
+              type: string
+              description: The key.
+            iv:
+              type: string
+              description: The iv.
+            expiresIn:
+              type: number
+              description: The expires in.
+          required:
+            - token
+            - key
+            - iv
+            - expiresIn
+          description: The data.
+        meta:
+          type: object
+          additionalProperties: {}
+          description: Operation-specific metadata.
+      required:
+        - data
+      description: Success response of `getLoginToken`.
+    LoginWithEncryptedPayloadRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 10
+          maxLength: 1024
+          description: Opaque token issued by the API.
+        data:
+          type: string
+          minLength: 16
+          maxLength: 4096
+          description: The data.
+      required:
+        - token
+        - data
+      description: Request body of `loginWithEncryptedPayload`.
+    LoginWithEncryptedPayloadResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: The access token.
+            refreshToken:
+              type: string
+              description: The refresh token.
+            expiresIn:
+              type: number
+              description: The expires in.
+            sessionId:
+              type: string
+              description: Identifier (UUID) of the session.
+            organizationId:
+              type:
+                - string
+                - "null"
+              description: Identifier of the owning organization (server-derived).
+            mfaSetupRequired:
+              type: boolean
+              description: The mfa setup required.
+            organizations:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Unique identifier (UUID).
+                  name:
+                    type: string
+                    description: Display name.
+                  code:
+                    type: string
+                    description: Short code (TOTP or recovery code, or a business code).
+                required:
+                  - id
+                  - name
+                  - code
+              description: The organizations.
+          required:
+            - accessToken
+            - refreshToken
+            - expiresIn
+            - sessionId
+            - organizationId
+            - mfaSetupRequired
+            - organizations
+          description: The data.
+        meta:
+          type: object
+          additionalProperties: {}
+          description: Operation-specific metadata.
+      required:
+        - data
+      description: Success response of `loginWithEncryptedPayload`.
     RefreshAccessTokenRequest:
       type: object
       properties:
@@ -23784,6 +23893,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoginWithPasswordResponse"
+              example:
+                data:
+                  accessToken: eyJhbGciOiJIUzI1NiJ9.EXAMPLE.EXAMPLE
+                  refreshToken: rt_EXAMPLE_0f3a9c2e41b84d6e9a1b7c5d3e2f4a6b
+                  expiresIn: 1
+                  sessionId: 4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55
+                  organizationId: 0c8f6a52-5d1e-4b0c-9a4e-1f2d3c4b5a69
+                  mfaSetupRequired: false
+                  organizations:
+                    - id: 7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22
+                      name: Acme Design Studio
+                      code: ACME
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/Maintenance"
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      x-required-permission: null
+      x-tenant-scoped: false
+      x-audited: false
+      x-idempotent: false
+      x-rate-limit: auth
+      x-release: MVP
+  /api/v1/auth/gettoken:
+    get:
+      operationId: getLoginToken
+      summary: Get a token and AES key for an encrypted login
+      description: >-
+        Step 1 of the encrypted sign-in. Returns a short-lived `token` (5
+        minutes) plus the AES-256 `key` and 16-byte `iv` (both base64) to
+        encrypt the login payload with. Stateless: nothing is stored
+        server-side. Rate limited per IP.
+
+
+        | | |
+
+        |---|---|
+
+        | **Authentication** | None (public) |
+
+        | **Required permission** | None |
+
+        | **Tenant scoped** | No — platform level |
+
+        | **Idempotency** | Not applicable |
+
+        | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
+
+
+        _Module: Authentication · MVP_
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLoginTokenResponse"
+              example:
+                data:
+                  token: v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl
+                  key: bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=
+                  iv: bXktMTYtYnl0ZS1pdi0xMg==
+                  expiresIn: 300
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/XRequestId"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/Maintenance"
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      x-required-permission: null
+      x-tenant-scoped: false
+      x-audited: false
+      x-idempotent: false
+      x-rate-limit: auth
+      x-release: MVP
+  /api/v1/auth/login-encrypted:
+    post:
+      operationId: loginWithEncryptedPayload
+      summary: Sign in with an AES-encrypted payload
+      description: >-
+        Step 2 of the encrypted sign-in. Send the `token` from `getLoginToken`
+        and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login
+        payload `{ email, password, organizationCode?, mfaCode? }`. Behaves
+        exactly like `loginWithPassword` and returns the same token bundle. An
+        unreadable or expired token/payload returns `422` (`details[0].issue =
+        "invalid_or_expired"`); credential failures return `401`. With
+        crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }),
+        CryptoJS.enc.Base64.parse(key), { iv: CryptoJS.enc.Base64.parse(iv),
+        mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.
+
+
+        | | |
+
+        |---|---|
+
+        | **Authentication** | None (public) |
+
+        | **Required permission** | None |
+
+        | **Tenant scoped** | No — platform level |
+
+        | **Idempotency** | Not applicable |
+
+        | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
+
+
+        _Module: Authentication · MVP_
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginWithEncryptedPayloadRequest"
+            examples:
+              encrypted:
+                summary: encrypted
+                value:
+                  token: v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl
+                  data: U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginWithEncryptedPayloadResponse"
               example:
                 data:
                   accessToken: eyJhbGciOiJIUzI1NiJ9.EXAMPLE.EXAMPLE

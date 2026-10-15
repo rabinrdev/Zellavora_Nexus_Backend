@@ -9,6 +9,8 @@ export const OPERATION_IDS: Readonly<Record<string, string>> = {
   'POST /auth/verify-email': 'verifyEmailAddress',
   'POST /auth/resend-verification': 'resendEmailVerification',
   'POST /auth/login': 'loginWithPassword',
+  'GET /auth/gettoken': 'getLoginToken',
+  'POST /auth/login-encrypted': 'loginWithEncryptedPayload',
   'POST /auth/refresh': 'refreshAccessToken',
   'POST /auth/logout': 'logoutCurrentSession',
   'POST /auth/logout-all': 'logoutAllSessions',

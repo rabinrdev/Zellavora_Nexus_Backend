@@ -3,7 +3,9 @@ import { defineRoute, type HandlerCtx } from '../../platform/http/route.js';
 import { authenticate } from '../../platform/http/authn.js';
 import type { RateLimiter } from '../../platform/rate-limit.js';
 import { withUser } from '../../platform/scope.js';
+import { AppError } from '../../platform/errors.js';
 import * as svc from './service.js';
+import { issueLoginToken, decryptLoginPayload, loginTokenResponse } from './login-token.js';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(1).max(256);
@@ -18,6 +20,16 @@ const ACCEPTED = { message: 'If the request can be processed, you will receive a
 const tokenBundle = z.object({
   accessToken: z.string(), refreshToken: z.string(), expiresIn: z.number(), sessionId: z.string(),
   organizationId: z.string().nullable(), mfaSetupRequired: z.boolean(),
+});
+
+const loginBody = z.object({
+  email, password,
+  organizationCode: z.string().trim().max(40).optional(),
+  mfaCode: z.string().trim().max(64).optional(),
+});
+
+const loginResponse = tokenBundle.extend({
+  organizations: z.array(z.object({ id: z.string(), name: z.string(), code: z.string() })),
 });
 
 defineRoute({
@@ -60,17 +72,36 @@ defineRoute({
 defineRoute({
   method: 'post', path: '/auth/login', module: MODULE, summary: 'Sign in with email and password',
   access: 'public', rateLimit: 'auth',
-  body: z.object({
-    email, password,
-    organizationCode: z.string().trim().max(40).optional(),
-    mfaCode: z.string().trim().max(64).optional(),
-  }),
-  response: tokenBundle.extend({
-    organizations: z.array(z.object({ id: z.string(), name: z.string(), code: z.string() })),
-  }),
+  body: loginBody,
+  response: loginResponse,
   async handler(c) {
     await limiter(c).consume('auth', `acct:${c.body.email}`);
     return { status: 200, data: await svc.login(c.svc, c.body, meta(c)) };
+  },
+});
+
+defineRoute({
+  method: 'get', path: '/auth/gettoken', module: MODULE, summary: 'Get a token and AES key for an encrypted login',
+  access: 'public', rateLimit: 'auth', response: loginTokenResponse,
+  async handler(c) {
+    return { status: 200, data: issueLoginToken(c.svc.keys, c.svc.now()) };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/login-encrypted', module: MODULE, summary: 'Sign in with an AES-encrypted payload',
+  access: 'public', rateLimit: 'auth',
+  body: z.object({ token: z.string().min(10).max(1024), data: z.string().min(16).max(4096) }),
+  response: loginResponse,
+  async handler(c) {
+    const raw = decryptLoginPayload(c.svc.keys, c.svc.now(), c.body.token, c.body.data);
+    const parsed = loginBody.safeParse(raw);
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_FAILED', 'Request validation failed',
+        parsed.error.issues.map((i) => ({ field: ['data', ...i.path].join('.'), issue: i.message })));
+    }
+    await limiter(c).consume('auth', `acct:${parsed.data.email}`);
+    return { status: 200, data: await svc.login(c.svc, parsed.data, meta(c)) };
   },
 });
 

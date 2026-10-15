@@ -246,6 +246,105 @@
           }
         },
         {
+          "name": "Get a token and AES key for an encrypted login",
+          "request": {
+            "name": "Get a token and AES key for an encrypted login",
+            "description": {
+              "content": "Step 1 of the encrypted sign-in. Returns a short-lived `token` (5 minutes) plus the AES-256 `key` and 16-byte `iv` (both base64) to encrypt the login payload with. Stateless: nothing is stored server-side. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "gettoken"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Sign in with an AES-encrypted payload",
+          "request": {
+            "name": "Sign in with an AES-encrypted payload",
+            "description": {
+              "content": "Step 2 of the encrypted sign-in. Send the `token` from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves exactly like `loginWithPassword` and returns the same token bundle. An unreadable or expired token/payload returns `422` (`details[0].issue = \"invalid_or_expired\"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(key), { iv: CryptoJS.enc.Base64.parse(iv), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login-encrypted"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl\",\n  \"data\": \"U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Rotate the refresh token",
           "request": {
             "name": "Rotate the refresh token",
