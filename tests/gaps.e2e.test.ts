@@ -5,7 +5,7 @@ import { getCtx, createActor, createPlatformAdmin, uniq, type TestCtx } from './
 import { S3Storage } from '../src/platform/storage-s3.js';
 import { HttpErrorTracker, MemoryErrorTracker, NoopErrorTracker, parseDsn } from '../src/platform/error-tracking.js';
 import { ClamdScanner, StubScanner } from '../src/platform/files.js';
-import { loadEnv } from '../src/config/env.js';
+import { loadEnv, collectEnvProblems } from '../src/config/env.js';
 import { withPlatformScope } from '../src/platform/scope.js';
 
 let ctx: TestCtx;
@@ -51,6 +51,23 @@ describe('S3 storage driver', () => {
     expect(() => loadEnv({ ...base, STORAGE_DRIVER: 's3' } as NodeJS.ProcessEnv)).toThrow(/S3_BUCKET/);
     expect(loadEnv({ ...base, STORAGE_DRIVER: 's3', S3_BUCKET: 'b' } as NodeJS.ProcessEnv).STORAGE_DRIVER).toBe('s3');
     expect(() => loadEnv({ ...base, NODE_ENV: 'production', MAIL_DRIVER: 'smtp', CORS_ORIGINS: 'https://a.example.test' } as NodeJS.ProcessEnv)).toThrow(/SCAN_DRIVER/);
+  });
+});
+
+describe('production environment problems', () => {
+  const base = { NODE_ENV: 'production', DATABASE_URL: 'postgres://u:p@localhost/db', JWT_SECRET: 'x'.repeat(40), DATA_ENCRYPTION_KEY: 'a'.repeat(64) };
+
+  it('reports every problem at once and keeps the stub scanner blocked by default', () => {
+    const problems = collectEnvProblems(base as NodeJS.ProcessEnv);
+    expect(problems.join('\n')).toMatch(/MAIL_DRIVER/);
+    expect(problems.join('\n')).toMatch(/CORS_ORIGINS/);
+    expect(problems.join('\n')).toMatch(/SCAN_DRIVER/);
+  });
+
+  it('accepts a clamd scanner, and rejects a malformed encryption key', () => {
+    const ok = { ...base, MAIL_DRIVER: 'smtp', SMTP_URL: 'smtp://u:p@mail.example.test', CORS_ORIGINS: 'https://a.example.test', SCAN_DRIVER: 'clamd' };
+    expect(collectEnvProblems(ok as NodeJS.ProcessEnv)).toEqual([]);
+    expect(collectEnvProblems({ ...ok, DATA_ENCRYPTION_KEY: 'not-hex'.repeat(10) } as NodeJS.ProcessEnv).join()).toMatch(/DATA_ENCRYPTION_KEY/);
   });
 });
 

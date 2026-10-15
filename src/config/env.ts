@@ -31,7 +31,7 @@ const schema = z.object({
   S3_PREFIX: z.string().default(''),
   SCAN_DRIVER: z.enum(['stub', 'clamd']).default('stub'),
   /** Production only: allow SCAN_DRIVER=stub (uploads are NOT malware-scanned). For hosts that cannot reach a clamd server. */
-  ALLOW_UNSCANNED_UPLOADS: bool.default('false'),
+  ALLOW_UNSCANNED_UPLOADS: bool.default(false),
   CLAMD_HOST: z.string().default('127.0.0.1'),
   CLAMD_PORT: z.coerce.number().int().default(3310),
   ERROR_TRACKING_DSN: z.string().url().optional(),
@@ -61,24 +61,40 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = schema.safeParse(source);
-  if (!parsed.success) {
-    const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
-    throw new Error(`Invalid environment configuration: ${issues}`); // fail fast at boot
+export class EnvConfigError extends Error {
+  constructor(readonly problems: string[]) {
+    super(`Invalid environment configuration: ${problems.join('; ')}`);
+    this.name = 'EnvConfigError';
   }
+}
+
+/**
+ * Every configuration problem at once (names and rules only, never values), so one deploy fixes them all.
+ * Empty array = valid. Used by `loadEnv` and by the serverless handler's boot-independent config check.
+ */
+export function collectEnvProblems(source: NodeJS.ProcessEnv = process.env): string[] {
+  const parsed = schema.safeParse(source);
+  if (!parsed.success) return parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
   const env = parsed.data;
+  const problems: string[] = [];
   if (env.NODE_ENV === 'production') {
-    if (env.MAIL_DRIVER === 'console') throw new Error('Invalid environment configuration: MAIL_DRIVER=console is not allowed in production');
-    if (env.CORS_ORIGINS.length === 0) throw new Error('Invalid environment configuration: CORS_ORIGINS required in production');
-    if (env.RATE_LIMIT_AUTH_POINTS !== undefined) throw new Error('Invalid environment configuration: RATE_LIMIT_AUTH_POINTS is not allowed in production');
-    if (env.SCAN_DRIVER === 'stub' && !env.ALLOW_UNSCANNED_UPLOADS) throw new Error('Invalid environment configuration: SCAN_DRIVER=stub is not allowed in production (set SCAN_DRIVER=clamd, or ALLOW_UNSCANNED_UPLOADS=true to accept unscanned uploads)');
+    if (env.MAIL_DRIVER === 'console') problems.push('MAIL_DRIVER=console is not allowed in production (set MAIL_DRIVER=smtp and SMTP_URL)');
+    if (env.MAIL_DRIVER === 'smtp' && !env.SMTP_URL) problems.push('SMTP_URL is required when MAIL_DRIVER=smtp');
+    if (env.CORS_ORIGINS.length === 0) problems.push('CORS_ORIGINS required in production');
+    if (env.RATE_LIMIT_AUTH_POINTS !== undefined) problems.push('RATE_LIMIT_AUTH_POINTS is not allowed in production');
+    if (env.SCAN_DRIVER === 'stub' && !env.ALLOW_UNSCANNED_UPLOADS) {
+      problems.push('SCAN_DRIVER=stub is not allowed in production (set SCAN_DRIVER=clamd, or ALLOW_UNSCANNED_UPLOADS=true to accept unscanned uploads)');
+    }
   }
   if (!!env.DOCS_BASIC_AUTH_USER !== !!env.DOCS_BASIC_AUTH_PASS) {
-    throw new Error('Invalid environment configuration: DOCS_BASIC_AUTH_USER and DOCS_BASIC_AUTH_PASS must be set together');
+    problems.push('DOCS_BASIC_AUTH_USER and DOCS_BASIC_AUTH_PASS must be set together');
   }
-  if (env.STORAGE_DRIVER === 's3' && !env.S3_BUCKET) {
-    throw new Error('Invalid environment configuration: S3_BUCKET is required when STORAGE_DRIVER=s3');
-  }
-  return env;
+  if (env.STORAGE_DRIVER === 's3' && !env.S3_BUCKET) problems.push('S3_BUCKET is required when STORAGE_DRIVER=s3');
+  return problems;
+}
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  const problems = collectEnvProblems(source);
+  if (problems.length > 0) throw new EnvConfigError(problems); // fail fast at boot
+  return schema.parse(source);
 }

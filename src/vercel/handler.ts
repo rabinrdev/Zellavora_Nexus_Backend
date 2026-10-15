@@ -5,8 +5,9 @@ import { waitUntil } from '@vercel/functions';
 import express from 'express';
 import type { Express, Request, Response } from 'express';
 import pg from 'pg';
-import { loadEnv } from '../config/env.js';
+import { loadEnv, collectEnvProblems, EnvConfigError } from '../config/env.js';
 import { buildServices } from '../bootstrap.js';
+import { DB_CONNECT_TIMEOUT_MS } from '../db/knex.js';
 import { createApp } from '../app.js';
 import { RateLimiter, bucketOverrides } from '../platform/rate-limit.js';
 import { mountDocs, docsEnabled } from '../platform/openapi/serve.js';
@@ -22,7 +23,7 @@ function init() {
     const env = loadEnv();
     const svc = await buildServices(env);
     const store = env.RATE_LIMIT_STORE ?? (env.NODE_ENV === 'production' ? 'postgres' : 'memory');
-    const pool = store === 'postgres' ? new pg.Pool({ connectionString: env.DATABASE_URL, max: 1 }) : null;
+    const pool = store === 'postgres' ? new pg.Pool({ connectionString: env.DATABASE_URL, max: 1, connectionTimeoutMillis: DB_CONNECT_TIMEOUT_MS }) : null;
     return { svc, app: createApp(svc, { rateLimiter: new RateLimiter(bucketOverrides(svc.env), pool ? { pool } : undefined) }) };
   })().catch((e: unknown) => {
     ready = undefined; // retry on the next invocation instead of caching a failed boot
@@ -59,12 +60,17 @@ function fail(res: Response, where: string, e: unknown) {
   console.error(`[${where}]`, e);
   if (res.headersSent) return;
   // raw node response: this can run before express has decorated it
-  res.statusCode = 500;
+  const misconfigured = e instanceof EnvConfigError;
+  res.statusCode = misconfigured ? 503 : 500;
   res.setHeader('content-type', 'application/json');
   res.end(
     JSON.stringify({
       // names the failing module or setting, never values or secrets
-      error: { code: 'STARTUP_FAILED', where, node: process.version, message: String((e as Error)?.message ?? e).slice(0, 500) },
+      error: {
+        code: misconfigured ? 'MISCONFIGURED' : 'STARTUP_FAILED', where, node: process.version,
+        message: String((e as Error)?.message ?? e).slice(0, 500),
+        ...(misconfigured ? { configErrors: e.problems } : {}),
+      },
     }),
   );
 }
@@ -77,8 +83,18 @@ async function mainHandler(req: Request, res: Response) {
   app(req, res);
 }
 
+// Answers without booting services: shows every configuration problem (names only) so a bad deploy is diagnosable.
+const CONFIG_CHECK_PATH = /^\/api\/v1\/health\/config\/?(?:\?.*)?$/;
+
 export default async function handler(req: Request, res: Response) {
   try {
+    if (req.method === 'GET' && CONFIG_CHECK_PATH.test(req.url ?? '')) {
+      const configErrors = collectEnvProblems();
+      res.statusCode = configErrors.length ? 503 : 200;
+      res.setHeader('content-type', 'application/json');
+      res.setHeader('cache-control', 'no-store');
+      return res.end(JSON.stringify({ status: configErrors.length ? 'misconfigured' : 'ok', configErrors }));
+    }
     if (req.method === 'GET' && DOCS_PATH.test(req.url ?? '/')) {
       return docs()(req, res, (err?: unknown) => {
         if (err) return fail(res, 'docs', err);
