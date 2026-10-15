@@ -64,14 +64,39 @@ export async function syncCatalogAndSystemRoles(db: Knex): Promise<string[]> {
   }
   const all = [...keys].sort();
   await withPlatformScope(db, 'catalog-sync', async (t) => {
-    for (const key of all) {
-      const [resource, action] = key.split(':') as [string, string];
-      await t('permissions').insert({ key, resource, action }).onConflict('key').merge(['resource', 'action']);
-    }
-    for (const role of SYSTEM_ROLES) {
+    // Cold starts on serverless must stay cheap: read the current state (3 queries) and write only when it differs.
+    const roleIds = SYSTEM_ROLES.map((r) => SYSTEM_ROLE_IDS[r.key]);
+    const havePerms = new Set((await t('permissions').select('key')).map((r: { key: string }) => r.key));
+    const haveRoles: { id: string; name: string; description: string | null; privileged: boolean }[] =
+      await t('roles').whereIn('id', roleIds).select('id', 'name', 'description', 'privileged');
+    const haveRp: { role_id: string; permission_key: string }[] =
+      await t('role_permissions').whereIn('role_id', roleIds).select('role_id', 'permission_key');
+    const rpByRole = new Map<string, Set<string>>();
+    for (const r of haveRp) (rpByRole.get(r.role_id) ?? rpByRole.set(r.role_id, new Set()).get(r.role_id)!).add(r.permission_key);
+
+    const permsInSync = all.every((k) => havePerms.has(k));
+    const staleRoles = SYSTEM_ROLES.filter((role) => {
       const id = SYSTEM_ROLE_IDS[role.key];
-      const exists = await t('roles').where({ id }).first();
-      if (exists) {
+      const row = haveRoles.find((r) => r.id === id);
+      if (!row || row.name !== role.name || (row.description ?? null) !== (role.description ?? null) || row.privileged !== role.privileged) return true;
+      const want = permissionsForRole(role.key, all);
+      const have = rpByRole.get(id) ?? new Set<string>();
+      return have.size !== want.length || want.some((k) => !have.has(k));
+    });
+    if (permsInSync && staleRoles.length === 0) return;
+
+    if (!permsInSync) {
+      const rows = all.filter((k) => !havePerms.has(k)).map((key) => {
+        const [resource, action] = key.split(':') as [string, string];
+        return { key, resource, action };
+      });
+      for (let i = 0; i < rows.length; i += 500) {
+        await t('permissions').insert(rows.slice(i, i + 500)).onConflict('key').merge(['resource', 'action']);
+      }
+    }
+    for (const role of staleRoles) {
+      const id = SYSTEM_ROLE_IDS[role.key];
+      if (haveRoles.some((r) => r.id === id)) {
         await t('roles').where({ id }).update({ name: role.name, description: role.description, privileged: role.privileged });
       } else {
         await t('roles').insert({

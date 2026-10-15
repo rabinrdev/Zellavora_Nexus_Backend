@@ -38,10 +38,9 @@ export async function evaluateAll(
 }
 
 export async function seedFlags(db: Knex, enabledByDefault: boolean): Promise<void> {
-  for (const key of MODULE_FLAGS) {
-    await db('feature_flags')
-      .insert({ key, description: `Enables ${key}`, default_enabled: enabledByDefault })
-      .onConflict('key')
-      .ignore();
-  }
+  // one statement instead of one round trip per flag (runs on every serverless cold start)
+  await db('feature_flags')
+    .insert(MODULE_FLAGS.map((key) => ({ key, description: `Enables ${key}`, default_enabled: enabledByDefault })))
+    .onConflict('key')
+    .ignore();
 }
