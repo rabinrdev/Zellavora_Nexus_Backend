@@ -8,7 +8,7 @@ import pg from 'pg';
 import { loadEnv } from '../config/env.js';
 import { buildServices } from '../bootstrap.js';
 import { createApp } from '../app.js';
-import { RateLimiter } from '../platform/rate-limit.js';
+import { RateLimiter, bucketOverrides } from '../platform/rate-limit.js';
 import { mountDocs, docsEnabled } from '../platform/openapi/serve.js';
 import type { Services } from '../platform/types.js';
 import '../modules/index.js'; // registers every route into the registry the OpenAPI document is built from
@@ -23,7 +23,7 @@ function init() {
     const svc = await buildServices(env);
     const store = env.RATE_LIMIT_STORE ?? (env.NODE_ENV === 'production' ? 'postgres' : 'memory');
     const pool = store === 'postgres' ? new pg.Pool({ connectionString: env.DATABASE_URL, max: 1 }) : null;
-    return { svc, app: createApp(svc, { rateLimiter: new RateLimiter({}, pool ? { pool } : undefined) }) };
+    return { svc, app: createApp(svc, { rateLimiter: new RateLimiter(bucketOverrides(svc.env), pool ? { pool } : undefined) }) };
   })().catch((e: unknown) => {
     ready = undefined; // retry on the next invocation instead of caching a failed boot
     throw e;

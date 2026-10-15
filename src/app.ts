@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
 import client from 'prom-client';
 import { AppError } from './platform/errors.js';
-import { RateLimiter } from './platform/rate-limit.js';
+import { RateLimiter, bucketOverrides } from './platform/rate-limit.js';
 import { mountRoutes } from './platform/http/route.js';
 import { mountDocs } from './platform/openapi/serve.js';
 import { newId, safeEqual } from './platform/crypto.js';
@@ -38,7 +38,7 @@ export function createApp(
   app.disable('x-powered-by');
   app.set('trust proxy', svc.env.TRUST_PROXY);
   app.set('query parser', 'extended');
-  app.locals.rateLimiter = opts.rateLimiter ?? new RateLimiter();
+  app.locals.rateLimiter = opts.rateLimiter ?? new RateLimiter(bucketOverrides(svc.env));
 
   const registry = new client.Registry();
   client.collectDefaultMetrics({ register: registry });

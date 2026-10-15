@@ -17,6 +17,11 @@ export const BUCKETS = {
 } satisfies Record<string, BucketConfig>;
 export type BucketName = keyof typeof BUCKETS;
 
+/** Bucket overrides from the environment (local/e2e only; production rejects them at boot). */
+export function bucketOverrides(env: { RATE_LIMIT_AUTH_POINTS?: number }): Partial<Record<BucketName, BucketConfig>> {
+  return env.RATE_LIMIT_AUTH_POINTS ? { auth: { points: env.RATE_LIMIT_AUTH_POINTS, durationSeconds: 60 } } : {};
+}
+
 export interface RateLimitStore {
   /** Shared store: counters are visible to every API instance. Requires the `rate_limits` table. */
   pool: Pool;

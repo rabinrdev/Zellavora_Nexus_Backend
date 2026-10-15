@@ -3,7 +3,7 @@ import { loadEnv } from './config/env.js';
 import { buildServices } from './bootstrap.js';
 import { createApp } from './app.js';
 import pg from 'pg';
-import { RateLimiter } from './platform/rate-limit.js';
+import { RateLimiter, bucketOverrides } from './platform/rate-limit.js';
 
 const env = loadEnv();
 const svc = await buildServices(env);
@@ -12,7 +12,7 @@ await svc.jobs.schedule('retention', '15 * * * *');
 
 const rlStore = env.RATE_LIMIT_STORE ?? (env.NODE_ENV === 'production' ? 'postgres' : 'memory');
 const rlPool = rlStore === 'postgres' ? new pg.Pool({ connectionString: env.DATABASE_URL, max: 4 }) : null;
-const app = createApp(svc, { rateLimiter: new RateLimiter({}, rlPool ? { pool: rlPool } : undefined) });
+const app = createApp(svc, { rateLimiter: new RateLimiter(bucketOverrides(svc.env), rlPool ? { pool: rlPool } : undefined) });
 const server = app.listen(env.PORT, () => svc.log.info({ port: env.PORT }, 'listening'));
 server.requestTimeout = 30_000;
 

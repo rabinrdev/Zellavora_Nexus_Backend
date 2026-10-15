@@ -44,6 +44,8 @@ const schema = z.object({
   JOBS_DRIVER: z.enum(['pgboss', 'inline']).default('pgboss'),
   /** postgres = shared counters across instances (default in production); memory = per instance. */
   RATE_LIMIT_STORE: z.enum(['memory', 'postgres']).optional(),
+  /** Local/e2e only: raises the per-minute `auth` bucket (default 10). Rejected in production. */
+  RATE_LIMIT_AUTH_POINTS: z.coerce.number().int().min(1).optional(),
   APP_VERSION: z.string().default('0.1.0'),
   GIT_SHA: z.string().default('dev'),
   /** Serve Swagger UI / Redoc / openapi.json. Default: on outside production. */
@@ -67,6 +69,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   if (env.NODE_ENV === 'production') {
     if (env.MAIL_DRIVER === 'console') throw new Error('Invalid environment configuration: MAIL_DRIVER=console is not allowed in production');
     if (env.CORS_ORIGINS.length === 0) throw new Error('Invalid environment configuration: CORS_ORIGINS required in production');
+    if (env.RATE_LIMIT_AUTH_POINTS !== undefined) throw new Error('Invalid environment configuration: RATE_LIMIT_AUTH_POINTS is not allowed in production');
     if (env.SCAN_DRIVER === 'stub') throw new Error('Invalid environment configuration: SCAN_DRIVER=stub is not allowed in production');
   }
   if (!!env.DOCS_BASIC_AUTH_USER !== !!env.DOCS_BASIC_AUTH_PASS) {
