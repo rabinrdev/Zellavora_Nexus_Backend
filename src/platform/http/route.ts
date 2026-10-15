@@ -60,6 +60,8 @@ export interface RouteDef<P extends ZodType = ZodType, Q extends ZodType = ZodTy
   /** public = no auth; authenticated = any signed-in user; permission string = RBAC-checked. */
   access: 'public' | 'authenticated' | 'platformAdmin' | { permission: string };
   scope?: 'tenant' | 'user' | 'platform';
+  /** Handler never touches the database: skip the transaction (`ctx.trx` is unusable), so it works when the DB is down. */
+  stateless?: boolean;
   params?: P;
   query?: Q;
   body?: B;
@@ -307,7 +309,9 @@ async function handle(def: AnyRoute, svc: Services, req: Request, res: Response)
 
   let result: HandlerResult;
   try {
-    if (scope === 'tenant') {
+    if (def.stateless) {
+      result = await exec(undefined as unknown as Trx);
+    } else if (scope === 'tenant') {
       if (!auth?.organizationId) throw new AppError('FORBIDDEN', 'An active organization is required');
       result = await withTenant(svc.db, { organizationId: auth.organizationId, userId: auth.userId }, exec);
     } else if (scope === 'user') {

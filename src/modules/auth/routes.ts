@@ -102,7 +102,7 @@ defineRoute({
 
 defineRoute({
   method: 'get', path: '/auth/gettoken', module: MODULE, summary: 'Get the [key, iv] token for an encrypted login',
-  access: 'public', rateLimit: 'auth', response: loginTokenResponse,
+  access: 'public', stateless: true, rateLimit: 'auth', response: loginTokenResponse,
   async handler(c) {
     return { status: 200, data: issueLoginToken(c.svc.keys, c.svc.now()) };
   },
