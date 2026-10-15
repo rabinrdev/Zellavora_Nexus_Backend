@@ -17,10 +17,10 @@ const me = await api.getMyPermissions();
 const page = await api.listProjects({ query: { limit: 25, sort: 'name' } });
 const task = await api.createProjectTask({ path: { projectId }, body: { title: 'Draft copy' } });
 const sent = await api.sendInvoice({ path: { invoiceId }, header: { 'Idempotency-Key': crypto.randomUUID() } });
-if (sent.error) console.log(sent.error.error.code, sent.error.error.requestId);
+if (sent.error) console.log(sent.error.errorMessage[0]?.code, sent.error.requestId);
 ```
 
-* Results are `{ data, error, response }`. `data` is the success envelope (`{ data, meta? }`); `error` is `{ error: { code, message, details, requestId } }`.
+* Results are `{ data, error, response }`. `data` is the success envelope (`{ errorMessage: [], infoMessage, hasError, data, meta? }`); `error` is `{ errorMessage: [{ msg, code, field?, issue? }], infoMessage, hasError: true, requestId }`.
 * The access token is attached automatically. A `401` triggers **one** shared `refreshAccessToken` call (refresh tokens rotate) and a single retry; if that fails `onAuthLost` runs.
 * File uploads: pass a `FormData` as `body` (`uploadFile`, `uploadDocument`, `importRecords`).
 

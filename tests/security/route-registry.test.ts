@@ -45,7 +45,7 @@ describe('route registry (F-155 / deny-by-default)', () => {
     for (const r of routeRegistry.filter((x) => permissionOf(x) || x.access === 'platformAdmin')) {
       const res = await call(r, nobody.auth);
       expect(res.status, `${r.method.toUpperCase()} ${r.path}`).toBe(403);
-      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body.errorMessage[0].code).toBe('FORBIDDEN');
     }
   });
 

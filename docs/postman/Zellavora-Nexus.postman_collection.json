@@ -1886,7 +1886,7 @@
           "request": {
             "name": "List groups",
             "description": {
-              "content": "List groups.\nReturns one page of group records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
+              "content": "List groups.\nReturns one page of group records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `groups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Users & Access (IAM) · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -4630,7 +4630,7 @@
           "request": {
             "name": "List departments",
             "description": {
-              "content": "List departments.\nReturns one page of department records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `departments:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
+              "content": "List departments.\nReturns one page of department records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `departments:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -4988,7 +4988,7 @@
           "request": {
             "name": "List locations",
             "description": {
-              "content": "List locations.\nReturns one page of location records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `locations:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
+              "content": "List locations.\nReturns one page of location records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `locations:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Organizations · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -8308,7 +8308,7 @@
           "request": {
             "name": "List document categories",
             "description": {
-              "content": "List document categories.\nReturns one page of document category records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `document_categories:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.documents` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Documents & Files · V1_",
+              "content": "List document categories.\nReturns one page of document category records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `document_categories:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.documents` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Documents & Files · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -10695,7 +10695,7 @@
           "request": {
             "name": "List teams",
             "description": {
-              "content": "List teams.\nReturns one page of team records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `teams:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.teams` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Teams · V1_",
+              "content": "List teams.\nReturns one page of team records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `teams:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.teams` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Teams · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -11644,7 +11644,7 @@
           "request": {
             "name": "List projects",
             "description": {
-              "content": "List projects.\nReturns one page of project records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `projects:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
+              "content": "List projects.\nReturns one page of project records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `projects:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -13499,7 +13499,7 @@
           "request": {
             "name": "List project templates",
             "description": {
-              "content": "List project templates.\nReturns one page of project template records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `project_templates:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
+              "content": "List project templates.\nReturns one page of project template records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `project_templates:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.projects` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Projects & Tasks · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -15916,7 +15916,7 @@
           "request": {
             "name": "List billing customers",
             "description": {
-              "content": "List billing customers.\nReturns one page of billing customer records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `customers:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.invoices` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Invoices & Payments · V1_",
+              "content": "List billing customers.\nReturns one page of billing customer records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `customers:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.invoices` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Invoices & Payments · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -16268,7 +16268,7 @@
           "request": {
             "name": "List tax configurations",
             "description": {
-              "content": "List tax configurations.\nReturns one page of tax configuration records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `tax_configs:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.invoices` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Invoices & Payments · V1_",
+              "content": "List tax configurations.\nReturns one page of tax configuration records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `tax_configs:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.invoices` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Invoices & Payments · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -17750,7 +17750,7 @@
           "request": {
             "name": "List leads",
             "description": {
-              "content": "List leads.\nReturns one page of lead records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `leads:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
+              "content": "List leads.\nReturns one page of lead records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `leads:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -18114,7 +18114,7 @@
           "request": {
             "name": "List contacts",
             "description": {
-              "content": "List contacts.\nReturns one page of contact records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `contacts:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
+              "content": "List contacts.\nReturns one page of contact records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `contacts:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -18472,7 +18472,7 @@
           "request": {
             "name": "List enquiries",
             "description": {
-              "content": "List enquiries.\nReturns one page of enquiry records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `enquiries:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
+              "content": "List enquiries.\nReturns one page of enquiry records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `enquiries:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -18836,7 +18836,7 @@
           "request": {
             "name": "List follow ups",
             "description": {
-              "content": "List follow ups.\nReturns one page of follow up records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `follow_ups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
+              "content": "List follow ups.\nReturns one page of follow up records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `follow_ups:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.crm` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Clients & CRM · V1_",
               "type": "text/plain"
             },
             "url": {
@@ -19749,7 +19749,7 @@
           "request": {
             "name": "List content categories",
             "description": {
-              "content": "List content categories.\nReturns one page of content category records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `content_categories:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.cms` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Content (CMS) · V2_",
+              "content": "List content categories.\nReturns one page of content category records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `content_categories:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.cms` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Content (CMS) · V2_",
               "type": "text/plain"
             },
             "url": {
@@ -21791,7 +21791,7 @@
           "request": {
             "name": "List themes",
             "description": {
-              "content": "List themes.\nReturns one page of theme records the caller may see in the active organization, as `{ data: [...], meta }`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `themes:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.themes` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Themes · V2_",
+              "content": "List themes.\nReturns one page of theme records the caller may see in the active organization, in `data` with `meta`. Use `meta.nextCursor` as `cursor` to fetch the next page. Unknown `sort`/`filter[...]` fields return `422`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token or API key |\n| **Required permission** | `themes:read` |\n| **Tenant scoped** | Yes — the active organization comes from the token; never send `organizationId` |\n| **Feature flag** | `module.themes` (disabled modules return `404 NOT_FOUND`) |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Themes · V2_",
               "type": "text/plain"
             },
             "url": {

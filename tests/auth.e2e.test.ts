@@ -30,14 +30,14 @@ describe('auth', () => {
     const bad1 = await ctx.api.post('/api/v1/auth/login').send({ email: a.email, password: 'wrong-Password-1!' });
     const bad2 = await ctx.api.post('/api/v1/auth/login').send({ email: 'nobody@example.test', password: 'wrong-Password-1!' });
     expect(bad1.status).toBe(401);
-    expect(bad1.body.error.message).toBe(bad2.body.error.message);
+    expect(bad1.body.errorMessage[0].msg).toBe(bad2.body.errorMessage[0].msg);
   });
 
   it('rejects weak passwords with the standard error contract', async () => {
     const r = await ctx.api.post('/api/v1/auth/register').send({ kind: 'individual', name: 'X', email: `${uniq()}@example.test`, password: 'short' });
     expect(r.status).toBe(422);
-    expect(r.body.error.code).toBe('VALIDATION_FAILED');
-    expect(r.body.error.requestId).toBeTruthy();
+    expect(r.body.errorMessage[0].code).toBe('VALIDATION_FAILED');
+    expect(r.body.requestId).toBeTruthy();
   });
 
   it('locks the account progressively after repeated failures', async () => {
@@ -89,7 +89,7 @@ describe('auth', () => {
     expect(codes).toHaveLength(10);
     const noCode = await ctx.api.post('/api/v1/auth/login').send({ email: a.email, password: STRONG_PASSWORD });
     expect(noCode.status).toBe(401);
-    expect(noCode.body.error.details[0].issue).toBe('mfa_required');
+    expect(noCode.body.errorMessage[1].issue).toBe('mfa_required');
     const withTotp = await ctx.api.post('/api/v1/auth/login').send({ email: a.email, password: STRONG_PASSWORD, mfaCode: currentTotp(setup.body.data.secret) });
     expect(withTotp.status).toBe(200);
     const rec = await ctx.api.post('/api/v1/auth/login').send({ email: a.email, password: STRONG_PASSWORD, mfaCode: codes[0] });

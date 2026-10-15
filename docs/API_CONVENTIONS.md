@@ -4,13 +4,22 @@ Base path `/api/v1`. JSON in/out, UTF-8, ISO-8601 UTC timestamps, `YYYY-MM-DD` c
 
 ## Envelope
 
-Success: `{ "data": …, "meta": { … } }` (`meta` only for lists). Binary endpoints (PDF/CSV/file) return the raw body.
-
-Error (always this shape, never stack traces or SQL):
+Success (`meta` only for lists):
 
 ```json
-{ "error": { "code": "VALIDATION_FAILED", "message": "Request validation failed",
-             "details": [{ "field": "body.email", "issue": "Invalid email" }], "requestId": "…" } }
+{ "errorMessage": [], "infoMessage": { "id": 0, "msg": null, "msgType": "Information" }, "hasError": false,
+  "data": { }, "meta": { } }
+```
+
+`infoMessage.msg` carries an optional user-facing note. Binary endpoints (PDF/CSV/file) return the raw body.
+
+Error (always this shape, never stack traces or SQL). The first `errorMessage` entry is the summary; validation errors add one entry per field:
+
+```json
+{ "errorMessage": [
+    { "id": 0, "msg": "Request validation failed", "msgType": "Error", "code": "VALIDATION_FAILED" },
+    { "id": 0, "msg": "body.email: Invalid email", "msgType": "Error", "code": "VALIDATION_FAILED", "field": "body.email", "issue": "Invalid email" } ],
+  "infoMessage": { "id": 0, "msg": null, "msgType": "Information" }, "hasError": true, "requestId": "…" }
 ```
 
 | Code | HTTP | Meaning |

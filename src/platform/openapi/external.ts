@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DEMO } from './shared.js';
+import { ErrorResponseSchema, statusFields } from './shared.js';
 
 /**
  * Routes mounted directly in app.ts (outside the permissioned route registry, by design): probes, metrics, version.
@@ -49,7 +49,7 @@ export const externalRoutes: ExternalRoute[] = [
     description: 'Prometheus text exposition. In production it requires `Authorization: Bearer <METRICS_TOKEN>` and otherwise returns `404`.',
     responses: [
       { status: 200, description: 'Prometheus text format.', schema: z.string().openapi({ description: 'Prometheus exposition format.' }), contentType: 'text/plain' },
-      { status: 404, description: 'Metrics are disabled or the token is wrong.', schema: z.object({ error: z.object({ code: z.string().openapi({ example: 'NOT_FOUND' }), message: z.string().openapi({ example: 'Resource not found' }), details: z.array(z.object({ issue: z.string().openapi({ description: 'Problem.' }) })), requestId: z.string().openapi({ example: DEMO.requestId }) }) }) },
+      { status: 404, description: 'Metrics are disabled or the token is wrong.', schema: ErrorResponseSchema },
     ],
   },
   {
@@ -58,6 +58,7 @@ export const externalRoutes: ExternalRoute[] = [
     responses: [{
       status: 200, description: 'Version metadata.',
       schema: z.object({
+        ...statusFields,
         data: z.object({
           version: z.string().openapi({ description: 'Application version.', example: '1.0.0' }),
           gitSha: z.string().nullable().openapi({ description: 'Git commit of the running build.', example: '6f9923a' }),

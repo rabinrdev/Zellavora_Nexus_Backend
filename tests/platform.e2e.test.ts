@@ -24,7 +24,7 @@ describe('IAM', () => {
     expect(me.body.data.permissions.some((p: string) => p.endsWith(':create') && !p.startsWith('access_requests:'))).toBe(false);
     const w = await ctx.api.post('/api/v1/departments').set(m.auth).send({ name: 'Nope' });
     expect(w.status).toBe(403);
-    expect(w.body.error.code).toBe('FORBIDDEN');
+    expect(w.body.errorMessage[0].code).toBe('FORBIDDEN');
   });
 
   it('role assignment takes effect immediately (old token rejected, re-login gets new permissions)', async () => {
@@ -141,7 +141,7 @@ describe('organization', () => {
     expect(s.status).toBe(200);
     const blocked = await ctx.api.get('/api/v1/departments').set(a.auth);
     expect(blocked.status).toBe(403);
-    expect(blocked.body.error.code).toBe('TENANT_SUSPENDED');
+    expect(blocked.body.errorMessage[0].code).toBe('TENANT_SUSPENDED');
     const invalid = await ctx.api.post('/api/v1/organization/reactivate').set(pa.auth).send({ organizationId: a.organizationId, reason: 'paid' });
     expect(invalid.status).toBe(200);
     expect((await ctx.api.get('/api/v1/departments').set(a.auth)).status).toBe(200);
@@ -241,7 +241,7 @@ describe('audit, exports, imports, security', () => {
     expect(b.body.data.id).toBe(a.body.data.id);
     const c = await ctx.api.post('/api/v1/audit-events/export').set(admin.auth).set('Idempotency-Key', key).send({ format: 'csv' });
     expect(c.status).toBe(422);
-    expect(c.body.error.code).toBe('IDEMPOTENCY_KEY_REUSED');
+    expect(c.body.errorMessage[0].code).toBe('IDEMPOTENCY_KEY_REUSED');
   });
 
   it('imports CSV all-or-nothing with row-level errors and supports dry-run', async () => {
@@ -301,7 +301,7 @@ describe('audit, exports, imports, security', () => {
     await ctx.api.patch('/api/v1/settings/application').set(pa.auth).send({ maintenance_mode: true });
     const down = await ctx.api.get('/api/v1/departments').set(admin.auth);
     expect(down.status).toBe(503);
-    expect(down.body.error.code).toBe('MAINTENANCE');
+    expect(down.body.errorMessage[0].code).toBe('MAINTENANCE');
     expect(down.headers['retry-after']).toBeTruthy();
     expect((await ctx.api.get('/api/v1/health/live')).status).toBe(200);
     await withPlatformScope(ctx.svc.db, 'test', (t) => t('application_settings').where({ key: 'maintenance_mode' }).delete());

@@ -31,7 +31,7 @@ describe('login with encrypted fields (single /auth/login)', () => {
     const bad = await ctx.api.post('/api/v1/auth/login')
       .send({ userLoginId: enc(other, 'x@example.test'), password: enc(other, 'x'), tokenkeys: t });
     expect(bad.status).toBe(422);
-    const forged = [t[0]!.slice(0, -2) + 'AA', t[1]!];
+    const forged = [(t[0]![0] === 'A' ? 'B' : 'A') + t[0]!.slice(1), t[1]!];
     const r = await ctx.api.post('/api/v1/auth/login')
       .send({ userLoginId: enc(forged, 'x@example.test'), password: enc(forged, 'x'), tokenkeys: forged });
     expect(r.status).toBe(422);

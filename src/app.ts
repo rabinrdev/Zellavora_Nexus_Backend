@@ -10,6 +10,7 @@ import { RateLimiter } from './platform/rate-limit.js';
 import { mountRoutes } from './platform/http/route.js';
 import { mountDocs } from './platform/openapi/serve.js';
 import { newId, safeEqual } from './platform/crypto.js';
+import { errorBody, successBody } from './platform/http/envelope.js';
 import { withPlatformScope } from './platform/scope.js';
 import type { Services } from './platform/types.js';
 
@@ -82,7 +83,7 @@ export function createApp(
     const tok = svc.env.METRICS_TOKEN;
     const given = (req.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
     if (tok ? !safeEqual(tok, given) : svc.env.NODE_ENV === 'production') {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found', details: [], requestId: res.locals.requestId } });
+      res.status(404).json(errorBody('NOT_FOUND', 'Resource not found', [], res.locals.requestId));
       return;
     }
     res.setHeader('Content-Type', registry.contentType);
@@ -94,18 +95,18 @@ export function createApp(
       const tok = svc.env.CRON_SECRET;
       const given = (req.get('authorization') ?? '').replace(/^Bearers+/i, '');
       if (!tok || !safeEqual(tok, given)) {
-        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found', details: [], requestId: res.locals.requestId } });
+        res.status(404).json(errorBody('NOT_FOUND', 'Resource not found', [], res.locals.requestId));
         return;
       }
       const dispatched = await svc.events.dispatchPending(500);
       await svc.jobs.enqueue('retention', {});
-      res.json({ data: { dispatched } });
+      res.json(successBody({ dispatched }));
     } catch (e) {
       next(e);
     }
   });
   app.get('/api/v1/meta/version', (_req, res) =>
-    void res.json({ data: { version: svc.env.APP_VERSION, gitSha: svc.env.GIT_SHA, apiVersions: ['v1'] } }),
+    void res.json(successBody({ version: svc.env.APP_VERSION, gitSha: svc.env.GIT_SHA, apiVersions: ['v1'] })),
   );
 
   // API version lifecycle (F-244): Deprecation / Sunset headers when a version is deprecated
@@ -159,7 +160,7 @@ export function createApp(
     }
     const retryAfter = (e as AppError & { retryAfter?: number }).retryAfter;
     if (retryAfter) res.setHeader('Retry-After', String(retryAfter));
-    res.status(e.status).json({ error: { code: e.code, message: e.message, details: e.details, requestId: res.locals.requestId } });
+    res.status(e.status).json(errorBody(e.code, e.message, e.details, res.locals.requestId));
   };
   app.use(onError);
   return app;

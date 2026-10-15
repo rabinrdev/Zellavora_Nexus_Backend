@@ -117,7 +117,7 @@ describe('billing', () => {
     for (let i = 0; i < 3; i++) expect((await ctx.api.post('/api/v1/projects').set(a.auth).send({ name: `P${i} ${uniq()}` })).status).toBe(201);
     const over = await ctx.api.post('/api/v1/projects').set(a.auth).send({ name: `P4 ${uniq()}` });
     expect(over.status).toBe(402);
-    expect(over.body.error.code).toBe('PLAN_LIMIT_EXCEEDED');
+    expect(over.body.errorMessage[0].code).toBe('PLAN_LIMIT_EXCEEDED');
     expect((await ctx.api.post('/api/v1/api-keys').set(a.auth).send({ name: 'ci-key', scopes: ['users:read'] })).status).toBe(402); // api_access not in free
     // upgrade: starts a trial, limits lift
     const sub = await ctx.api.post('/api/v1/subscriptions').set(a.auth).set('Idempotency-Key', randomUUID()).send({ planKey: 'pro', provider: 'mock', customerRef: 'cust_fail' });
@@ -158,7 +158,7 @@ describe('billing', () => {
     expect((await runBilling(ctx.svc)).suspended).toBe(1);
     const r = await ctx.api.get('/api/v1/departments').set(a.auth);
     expect(r.status).toBe(403);
-    expect(r.body.error.code).toBe('TENANT_SUSPENDED');
+    expect(r.body.errorMessage[0].code).toBe('TENANT_SUSPENDED');
   });
 
   it('cancels at period end and expires by job', async () => {

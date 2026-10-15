@@ -1,6 +1,6 @@
 # API inventory (Phase 0 audit, taken before the Swagger work)
 
-**Stack:** Express 5.3, Zod 4, `@asteasolutions/zod-to-openapi` 9 (OpenAPI 3.1), `swagger-ui-express`. Routes were registered through `defineRoute()` into a central `routeRegistry` (plus `crudResource()` for CRUD tables); four probe/meta routes were mounted directly in `app.ts`. Validation: Zod on params/query/body, enforced in `defineRoute`. Error envelope `{ error: { code, message, details, requestId } }`. Auth: `authenticate()`; permissions via `access: { permission }`. Pagination: `paginate()` (cursor/offset). Idempotency and rate limit: built into `defineRoute`. Module flags: `moduleFlag`.
+**Stack:** Express 5.3, Zod 4, `@asteasolutions/zod-to-openapi` 9 (OpenAPI 3.1), `swagger-ui-express`. Routes were registered through `defineRoute()` into a central `routeRegistry` (plus `crudResource()` for CRUD tables); four probe/meta routes were mounted directly in `app.ts`. Validation: Zod on params/query/body, enforced in `defineRoute`. Error envelope `{ errorMessage: [{ id, msg, msgType, code, field?, issue? }], infoMessage, hasError, requestId }`. Auth: `authenticate()`; permissions via `access: { permission }`. Pagination: `paginate()` (cursor/offset). Idempotency and rate limit: built into `defineRoute`. Module flags: `moduleFlag`.
 
 **State found:** a minimal generated spec (summary only, one generic `4XX/5XX` response, no operationIds, no examples, no tags catalog, `:id` path parameters), Swagger UI at `/api/docs`, no Redoc, no YAML.
 

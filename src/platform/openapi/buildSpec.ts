@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { routeRegistry, permissionOf, type AnyRoute } from '../http/route.js';
 import { listQuerySchema } from '../pagination.js';
 import { TAGS, TAG_GROUPS, INTERNAL_PATHS, tagFor, type TagDef } from './catalog.js';
-import { DEMO, ERROR_CODES, ErrorResponseSchema, PaginationMetaSchema, ValidationErrorResponseSchema } from './shared.js';
+import { DEMO, ERROR_CODES, ErrorResponseSchema, PaginationMetaSchema, ValidationErrorResponseSchema, statusFields } from './shared.js';
 import { gettingStartedGuide } from './guide.js';
 import { addExamples, exampleFor } from './examples.js';
 import { describeProperty, humanize, paramDescription, paramExample } from './describe.js';
@@ -189,7 +189,7 @@ function describeOperation(r: AnyRoute, tag: TagDef): string {
   if (!r.description) {
     switch (kind) {
       case 'list':
-        lines.push(`Returns one page of ${noun} records the caller may see in the active organization, as \`{ data: [...], meta }\`. Use \`meta.nextCursor\` as \`cursor\` to fetch the next page. Unknown \`sort\`/\`filter[...]\` fields return \`422\`.`);
+        lines.push(`Returns one page of ${noun} records the caller may see in the active organization, in \`data\` with \`meta\`. Use \`meta.nextCursor\` as \`cursor\` to fetch the next page. Unknown \`sort\`/\`filter[...]\` fields return \`422\`.`);
         break;
       case 'get':
         lines.push('Returns a single record. A record that does not exist, was soft-deleted or belongs to another organization returns `404` (never `403`), so existence is not disclosed.');
@@ -298,8 +298,8 @@ export function buildOpenApi(opts: BuildOptions) {
       const name = r.responseName ?? st;
       const item = r.responseName ? registerOnce(r.responseName, data) : undefined;
       const envelope = listLike
-        ? z.object(paginatedList ? { data: z.array(item ?? data), meta: PaginationMetaSchema } : { data: z.array(item ?? data) })
-        : z.object({ data: item ?? data, meta: z.record(z.string(), z.unknown()).optional().openapi({ description: 'Operation-specific metadata.' }) });
+        ? z.object(paginatedList ? { ...statusFields, data: z.array(item ?? data), meta: PaginationMetaSchema } : { ...statusFields, data: z.array(item ?? data) })
+        : z.object({ ...statusFields, data: item ?? data, meta: z.record(z.string(), z.unknown()).optional().openapi({ description: 'Operation-specific metadata.' }) });
       const envName = listLike && r.responseName ? `${name}ListResponse` : `${name}Response`;
       responses[status] = {
         description: SUCCESS_TEXT[status] ?? 'Success',
@@ -426,7 +426,15 @@ function sharedComponents(): Json {
     content: {
       'application/json': {
         schema: { $ref: `#/components/schemas/${status === 422 ? 'ValidationErrorResponse' : 'ErrorResponse'}` },
-        example: { error: { code, message, details, requestId: DEMO.requestId } },
+        example: {
+          errorMessage: [
+            { id: 0, msg: message, msgType: 'Error', code },
+            ...details.map((d: Json) => ({ id: 0, msg: d.field ? `${d.field}: ${d.issue}` : d.issue, msgType: 'Error', code, ...(d.field ? { field: d.field } : {}), issue: d.issue })),
+          ],
+          infoMessage: { id: 0, msg: null, msgType: 'Information' },
+          hasError: true,
+          requestId: DEMO.requestId,
+        },
       },
     },
   });

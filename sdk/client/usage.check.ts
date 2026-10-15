@@ -16,5 +16,5 @@ export async function smoke() {
   const tasks = await api.listProjectTasks({ path: { projectId }, query: { limit: 10, status: 'todo' } });
   const next = tasks.data?.meta.nextCursor;
   const sent = await api.sendInvoice({ path: { invoiceId: '3d4e6a52-5d1e-4b0c-9a4e-1f2d3c4b5a44' }, header: { 'Idempotency-Key': 'abc' } });
-  return { org, next, sent: sent.response.status, err: sent.error?.error.code };
+  return { org, next, sent: sent.response.status, err: sent.error?.errorMessage[0]?.code };
 }

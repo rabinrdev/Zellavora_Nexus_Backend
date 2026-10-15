@@ -29,7 +29,7 @@ below shows its required permission in the **Access** table and in \`x-required-
 * A module that is switched off for the organization → \`404 NOT_FOUND\` (see \`x-feature-flag\`).
 
 ## 4. Lists: pagination, filtering, sorting
-List responses are \`{ "data": [...], "meta": { "limit", "nextCursor" } }\`.
+Every response carries \`errorMessage\` (empty on success), \`infoMessage\` and \`hasError\`; the payload is in \`data\`. List responses add \`"meta": { "limit", "nextCursor" }\`.
 * **Cursor pagination (default):** \`?limit=25\` (1-100) then pass \`meta.nextCursor\` as \`?cursor=\`. \`nextCursor: null\` means the last page. Cursors are opaque.
 * **Offset pagination:** \`?page=2&pageSize=25\` adds \`meta.total\`.
 * **Sorting:** \`?sort=name\` or \`?sort=-created_at\`; the allowed fields are listed per operation. Order is stable (tie-break on id).
@@ -43,7 +43,7 @@ List responses are \`{ "data": [...], "meta": { "limit", "nextCursor" } }\`.
 * **Long-running work** (exports, imports, report exports) returns \`202\` and an id; poll the matching \`get…ById\` operation until \`status\` is \`completed\` or \`failed\`.
 
 ## 6. Conventions
-* **Errors:** always \`{ "error": { "code", "message", "details": [{ "field", "issue" }], "requestId" } }\`. Branch on \`code\` (see **ErrorCode**), show \`message\`, map \`details[].field\` to form fields, and quote \`requestId\` (also the \`X-Request-Id\` header) to support.
+* **Errors:** always \`{ "errorMessage": [{ "id", "msg", "msgType": "Error", "code", "field?", "issue?" }], "infoMessage", "hasError": true, "requestId" }\`. The first \`errorMessage\` entry is the summary (branch on its \`code\`, see **ErrorCode**, and show \`msg\`); validation errors add one entry per field (\`field\`, \`issue\`) to map onto form fields. Quote \`requestId\` (also the \`X-Request-Id\` header) to support.
 * **Rate limits:** \`429 RATE_LIMITED\` with a \`Retry-After\` header (seconds). Sensitive endpoints (login, invitations, search) have stricter buckets.
 * **Dates and times:** ISO-8601 in UTC (\`${DEMO.timestamp}\`); calendar dates are \`YYYY-MM-DD\`.
 * **Money:** decimal **strings** (\`"1250.00"\`) plus an ISO-4217 \`currency\`; never floats.

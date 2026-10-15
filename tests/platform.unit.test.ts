@@ -153,7 +153,7 @@ describe('HTTP behaviour', () => {
     expect(statuses.slice(0, 3)).toEqual([401, 401, 401]);
     expect(statuses.slice(3)).toEqual([429, 429]);
     expect(last!.headers['retry-after']).toBeTruthy();
-    expect(last!.body.error.code).toBe('RATE_LIMITED');
+    expect(last!.body.errorMessage[0].code).toBe('RATE_LIMITED');
   });
 
   it('never leaks internals: malformed JSON, unknown routes, bad ids, and request-id echo', async () => {
@@ -163,7 +163,7 @@ describe('HTTP behaviour', () => {
     expect(JSON.stringify(bad.body)).not.toMatch(/SyntaxError|at |node_modules|stack/);
     const nf = await ctx.api.get('/api/v1/no/such/route');
     expect(nf.status).toBe(404);
-    expect(nf.body.error.code).toBe('NOT_FOUND');
+    expect(nf.body.errorMessage[0].code).toBe('NOT_FOUND');
     const rid = 'client-supplied-id-12345';
     const echoed = await ctx.api.get('/api/v1/health/live').set('X-Request-Id', rid);
     expect(echoed.headers['x-request-id']).toBe(rid);

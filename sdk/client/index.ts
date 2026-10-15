@@ -34,7 +34,7 @@ export type Input<K extends keyof operations> = (IsNever<PartOf<Op<K>, 'path'>> 
 export interface Result<K extends keyof operations> {
   /** Parsed body of a 2xx response (`undefined` for 204 or errors). */
   data?: Success<Op<K>>;
-  /** Error envelope `{ error: { code, message, details, requestId } }` for non-2xx responses. */
+  /** Error envelope `{ errorMessage: [{ msg, code, field?, issue? }], infoMessage, hasError, requestId }` for non-2xx responses. */
   error?: Failure<Op<K>>;
   response: Response;
 }

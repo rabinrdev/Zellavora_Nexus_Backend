@@ -14,6 +14,7 @@ import { assertPlanAllows } from '../entitlements.js';
 import type { BucketName } from '../rate-limit.js';
 import { OPERATION_IDS } from '../openapi/operations.js';
 import { describeParamNames } from '../openapi/naming.js';
+import { successBody } from './envelope.js';
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
@@ -41,6 +42,8 @@ export interface HandlerResult {
   status?: number;
   data?: unknown;
   meta?: Record<string, unknown>;
+  /** Shown to the user as `infoMessage.msg`. */
+  message?: string;
   headers?: Record<string, string>;
   /** Binary/text body instead of the JSON envelope (e.g. PDF, CSV, file download). */
   raw?: { contentType: string; body: Buffer | string; filename?: string };
@@ -333,7 +336,7 @@ async function handle(def: AnyRoute, svc: Services, req: Request, res: Response)
     res.status(status).send(result.raw.body);
     return;
   }
-  const payload = status === 204 ? undefined : { data: result.data ?? null, ...(result.meta ? { meta: result.meta } : {}) };
+  const payload = status === 204 ? undefined : successBody(result.data, { meta: result.meta, message: result.message });
   if (idemId) {
     await withPlatformScope(svc.db, 'idempotency', (t) =>
       t('idempotency_records').where({ id: idemId }).update({
