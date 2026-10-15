@@ -60,7 +60,7 @@ Sign-up, sign-in, token refresh, MFA, password reset and session management for 
 | `verifyEmailAddress` | POST | `/auth/verify-email` | Verify an email address | public | `VerifyEmailAddressRequest` | `200 VerifyEmailAddressResponse` | 422 |
 | `resendEmailVerification` | POST | `/auth/resend-verification` | Resend the verification email | public | `ResendEmailVerificationRequest` | `202 ResendEmailVerificationResponse` | 422 |
 | `loginWithPassword` | POST | `/auth/login` | Sign in with email and password | public | `LoginWithPasswordRequest` | `200 LoginWithPasswordResponse` | 401 422 |
-| `getLoginToken` | GET | `/auth/gettoken` | Get a token and AES key for an encrypted login | public |  | `200 GetLoginTokenResponse` |  |
+| `getLoginToken` | GET | `/auth/gettoken` | Get the [key, iv] token for an encrypted login | public |  | `200 GetLoginTokenResponse` |  |
 | `loginWithEncryptedPayload` | POST | `/auth/login-encrypted` | Sign in with an AES-encrypted payload | public | `LoginWithEncryptedPayloadRequest` | `200 LoginWithEncryptedPayloadResponse` | 401 422 |
 | `refreshAccessToken` | POST | `/auth/refresh` | Rotate the refresh token | public | `RefreshAccessTokenRequest` | `200 RefreshAccessTokenResponse` | 401 422 |
 | `logoutCurrentSession` | POST | `/auth/logout` | Revoke the current session | any signed-in user |  | `200 LogoutCurrentSessionResponse` | 401 403 |

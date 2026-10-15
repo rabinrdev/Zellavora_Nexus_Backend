@@ -5,7 +5,7 @@ import type { RateLimiter } from '../../platform/rate-limit.js';
 import { withUser } from '../../platform/scope.js';
 import { AppError } from '../../platform/errors.js';
 import * as svc from './service.js';
-import { issueLoginToken, decryptLoginPayload, loginTokenResponse } from './login-token.js';
+import { issueLoginToken, decryptLoginPayload, loginTokenResponse, loginTokenSchema } from './login-token.js';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(1).max(256);
@@ -81,7 +81,7 @@ defineRoute({
 });
 
 defineRoute({
-  method: 'get', path: '/auth/gettoken', module: MODULE, summary: 'Get a token and AES key for an encrypted login',
+  method: 'get', path: '/auth/gettoken', module: MODULE, summary: 'Get the [key, iv] token for an encrypted login',
   access: 'public', rateLimit: 'auth', response: loginTokenResponse,
   async handler(c) {
     return { status: 200, data: issueLoginToken(c.svc.keys, c.svc.now()) };
@@ -91,7 +91,7 @@ defineRoute({
 defineRoute({
   method: 'post', path: '/auth/login-encrypted', module: MODULE, summary: 'Sign in with an AES-encrypted payload',
   access: 'public', rateLimit: 'auth',
-  body: z.object({ token: z.string().min(10).max(1024), data: z.string().min(16).max(4096) }),
+  body: z.object({ token: loginTokenSchema, data: z.string().min(16).max(4096) }),
   response: loginResponse,
   async handler(c) {
     const raw = decryptLoginPayload(c.svc.keys, c.svc.now(), c.body.token, c.body.data);

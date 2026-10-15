@@ -132,8 +132,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get a token and AES key for an encrypted login
-         * @description Step 1 of the encrypted sign-in. Returns a short-lived `token` (5 minutes) plus the AES-256 `key` and 16-byte `iv` (both base64) to encrypt the login payload with. Stateless: nothing is stored server-side. Rate limited per IP.
+         * Get the [key, iv] token for an encrypted login
+         * @description Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.
          *
          *     | | |
          *     |---|---|
@@ -165,7 +165,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with an AES-encrypted payload
-         * @description Step 2 of the encrypted sign-in. Send the `token` from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves exactly like `loginWithPassword` and returns the same token bundle. An unreadable or expired token/payload returns `422` (`details[0].issue = "invalid_or_expired"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(key), { iv: CryptoJS.enc.Base64.parse(iv), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.
+         * @description Step 2 of the encrypted sign-in. Send the `token` array from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves like `loginWithPassword` and returns the same token bundle. A forged, unreadable or expired token/payload returns `422` (`details[0].issue = "invalid_or_expired"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(token[0]), { iv: CryptoJS.enc.Base64.parse(token[1]), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.
          *
          *     | | |
          *     |---|---|
@@ -12438,16 +12438,7 @@ export interface components {
         /** @description Success response of `getLoginToken`. */
         GetLoginTokenResponse: {
             /** @description The data. */
-            data: {
-                /** @description Opaque token issued by the API. */
-                token: string;
-                /** @description The key. */
-                key: string;
-                /** @description The iv. */
-                iv: string;
-                /** @description The expires in. */
-                expiresIn: number;
-            };
+            data: string[];
             /** @description Operation-specific metadata. */
             meta?: {
                 [key: string]: unknown;
@@ -12456,7 +12447,7 @@ export interface components {
         /** @description Request body of `loginWithEncryptedPayload`. */
         LoginWithEncryptedPayloadRequest: {
             /** @description Opaque token issued by the API. */
-            token: string;
+            token: string[];
             /** @description The data. */
             data: string;
         };
@@ -27189,12 +27180,10 @@ export interface operations {
                 content: {
                     /**
                      * @example {
-                     *       "data": {
-                     *         "token": "v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl",
-                     *         "key": "bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=",
-                     *         "iv": "bXktMTYtYnl0ZS1pdi0xMg==",
-                     *         "expiresIn": 300
-                     *       }
+                     *       "data": [
+                     *         "bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=",
+                     *         "AAAAAGl2LWV4YW1wbGUtMTI="
+                     *       ]
                      *     }
                      */
                     "application/json": components["schemas"]["GetLoginTokenResponse"];

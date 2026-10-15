@@ -246,11 +246,11 @@
           }
         },
         {
-          "name": "Get a token and AES key for an encrypted login",
+          "name": "Get the [key, iv] token for an encrypted login",
           "request": {
-            "name": "Get a token and AES key for an encrypted login",
+            "name": "Get the [key, iv] token for an encrypted login",
             "description": {
-              "content": "Step 1 of the encrypted sign-in. Returns a short-lived `token` (5 minutes) plus the AES-256 `key` and 16-byte `iv` (both base64) to encrypt the login payload with. Stateless: nothing is stored server-side. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "content": "Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -293,7 +293,7 @@
           "request": {
             "name": "Sign in with an AES-encrypted payload",
             "description": {
-              "content": "Step 2 of the encrypted sign-in. Send the `token` from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves exactly like `loginWithPassword` and returns the same token bundle. An unreadable or expired token/payload returns `422` (`details[0].issue = \"invalid_or_expired\"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(key), { iv: CryptoJS.enc.Base64.parse(iv), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "content": "Step 2 of the encrypted sign-in. Send the `token` array from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves like `loginWithPassword` and returns the same token bundle. A forged, unreadable or expired token/payload returns `422` (`details[0].issue = \"invalid_or_expired\"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(token[0]), { iv: CryptoJS.enc.Base64.parse(token[1]), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -330,7 +330,7 @@
             "auth": null,
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"v1.Yk3q0e9l2mXn.q8Zr1gW0aB7c5d3eF9hJkA.VGhpcyBpcyBhbiBleGFtcGxl\",\n  \"data\": \"U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==\"\n}",
+              "raw": "{\n  \"token\": [\n    \"bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=\",\n    \"AAAAAGl2LWV4YW1wbGUtMTI=\"\n  ],\n  \"data\": \"U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
