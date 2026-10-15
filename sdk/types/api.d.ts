@@ -105,7 +105,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with email and password
-         * @description Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: "mfaCode", issue: "mfa_required" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.
+         * @description Accepts plain credentials or the encrypted `AuthenticateUser` shape: call `getLoginToken` first, then send `userLoginId` (email) and `password` AES-256-CBC encrypted (base64, PKCS7) with `tokenkeys` = the `[key, iv]` array. A forged/expired `tokenkeys` or undecryptable field returns `422` (`invalid_or_expired`). `clientCode` is used as `organizationCode` when that is absent. Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: "mfaCode", issue: "mfa_required" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.
          *
          *     | | |
          *     |---|---|
@@ -148,36 +148,6 @@ export interface paths {
         get: operations["getLoginToken"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login-encrypted": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sign in with an AES-encrypted payload
-         * @description Step 2 of the encrypted sign-in. Send the `token` array from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves like `loginWithPassword` and returns the same token bundle. A forged, unreadable or expired token/payload returns `422` (`details[0].issue = "invalid_or_expired"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(token[0]), { iv: CryptoJS.enc.Base64.parse(token[1]), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.
-         *
-         *     | | |
-         *     |---|---|
-         *     | **Authentication** | None (public) |
-         *     | **Required permission** | None |
-         *     | **Tenant scoped** | No — platform level |
-         *     | **Idempotency** | Not applicable |
-         *     | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
-         *
-         *     _Module: Authentication · MVP_
-         */
-        post: operations["loginWithEncryptedPayload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12396,11 +12366,17 @@ export interface components {
              * Format: email
              * @description Email address.
              */
-            email: string;
+            email?: string;
+            /** @description Identifier (UUID) of the user login. */
+            userLoginId?: string;
             /** @description The user's password. */
             password: string;
+            /** @description The tokenkeys. */
+            tokenkeys?: string[];
             /** @description The organization code. */
             organizationCode?: string;
+            /** @description The client code. */
+            clientCode?: string;
             /** @description The mfa code. */
             mfaCode?: string;
         };
@@ -12439,44 +12415,6 @@ export interface components {
         GetLoginTokenResponse: {
             /** @description The data. */
             data: string[];
-            /** @description Operation-specific metadata. */
-            meta?: {
-                [key: string]: unknown;
-            };
-        };
-        /** @description Request body of `loginWithEncryptedPayload`. */
-        LoginWithEncryptedPayloadRequest: {
-            /** @description Opaque token issued by the API. */
-            token: string[];
-            /** @description The data. */
-            data: string;
-        };
-        /** @description Success response of `loginWithEncryptedPayload`. */
-        LoginWithEncryptedPayloadResponse: {
-            /** @description The data. */
-            data: {
-                /** @description The access token. */
-                accessToken: string;
-                /** @description The refresh token. */
-                refreshToken: string;
-                /** @description The expires in. */
-                expiresIn: number;
-                /** @description Identifier (UUID) of the session. */
-                sessionId: string;
-                /** @description Identifier of the owning organization (server-derived). */
-                organizationId: string | null;
-                /** @description The mfa setup required. */
-                mfaSetupRequired: boolean;
-                /** @description The organizations. */
-                organizations: {
-                    /** @description Unique identifier (UUID). */
-                    id: string;
-                    /** @description Display name. */
-                    name: string;
-                    /** @description Short code (TOTP or recovery code, or a business code). */
-                    code: string;
-                }[];
-            };
             /** @description Operation-specific metadata. */
             meta?: {
                 [key: string]: unknown;
@@ -27189,61 +27127,6 @@ export interface operations {
                     "application/json": components["schemas"]["GetLoginTokenResponse"];
                 };
             };
-            429: components["responses"]["RateLimited"];
-            500: components["responses"]["InternalError"];
-            503: components["responses"]["Maintenance"];
-        };
-    };
-    loginWithEncryptedPayload: {
-        parameters: {
-            query?: never;
-            header?: {
-                /**
-                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
-                 * @example req_7f3a9c2e41b84d6e
-                 */
-                "X-Request-Id"?: components["parameters"]["RequestId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginWithEncryptedPayloadRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    "X-Request-Id": components["headers"]["XRequestId"];
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "data": {
-                     *         "accessToken": "eyJhbGciOiJIUzI1NiJ9.EXAMPLE.EXAMPLE",
-                     *         "refreshToken": "rt_EXAMPLE_0f3a9c2e41b84d6e9a1b7c5d3e2f4a6b",
-                     *         "expiresIn": 1,
-                     *         "sessionId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55",
-                     *         "organizationId": "0c8f6a52-5d1e-4b0c-9a4e-1f2d3c4b5a69",
-                     *         "mfaSetupRequired": false,
-                     *         "organizations": [
-                     *           {
-                     *             "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
-                     *             "name": "Acme Design Studio",
-                     *             "code": "ACME"
-                     *           }
-                     *         ]
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["LoginWithEncryptedPayloadResponse"];
-                };
-            };
-            401: components["responses"]["Unauthenticated"];
-            422: components["responses"]["ValidationFailed"];
             429: components["responses"]["RateLimited"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["Maintenance"];

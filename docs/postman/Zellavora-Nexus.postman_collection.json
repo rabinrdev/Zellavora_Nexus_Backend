@@ -180,7 +180,7 @@
           "request": {
             "name": "Sign in with email and password",
             "description": {
-              "content": "Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: \"mfaCode\", issue: \"mfa_required\" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "content": "Accepts plain credentials or the encrypted `AuthenticateUser` shape: call `getLoginToken` first, then send `userLoginId` (email) and `password` AES-256-CBC encrypted (base64, PKCS7) with `tokenkeys` = the `[key, iv]` array. A forged/expired `tokenkeys` or undecryptable field returns `422` (`invalid_or_expired`). `clientCode` is used as `organizationCode` when that is absent. Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: \"mfaCode\", issue: \"mfa_required\" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -217,7 +217,7 @@
             "auth": null,
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"amelia.hart@example.test\",\n  \"password\": \"Correct-Horse-Battery-9\"\n}",
+              "raw": "{\n  \"userLoginId\": \"U17tXqkiF0JMSzWMpNXPPg==\",\n  \"password\": \"yHbUckhfMTLcSmJwgYQzMg==\",\n  \"tokenkeys\": [\n    \"bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=\",\n    \"AAAAAGl2LWV4YW1wbGUtMTI=\"\n  ],\n  \"clientCode\": \"DC\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -281,62 +281,6 @@
             ],
             "method": "GET",
             "auth": null
-          },
-          "response": [],
-          "event": [],
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          }
-        },
-        {
-          "name": "Sign in with an AES-encrypted payload",
-          "request": {
-            "name": "Sign in with an AES-encrypted payload",
-            "description": {
-              "content": "Step 2 of the encrypted sign-in. Send the `token` array from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves like `loginWithPassword` and returns the same token bundle. A forged, unreadable or expired token/payload returns `422` (`details[0].issue = \"invalid_or_expired\"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(token[0]), { iv: CryptoJS.enc.Base64.parse(token[1]), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
-              "type": "text/plain"
-            },
-            "url": {
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "login-encrypted"
-              ],
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [],
-              "variable": [],
-              "raw": "{{baseUrl}}"
-            },
-            "header": [
-              {
-                "disabled": false,
-                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
-                "key": "X-Request-Id",
-                "value": "req_7f3a9c2e41b84d6e"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "method": "POST",
-            "auth": null,
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": [\n    \"bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=\",\n    \"AAAAAGl2LWV4YW1wbGUtMTI=\"\n  ],\n  \"data\": \"U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
           },
           "response": [],
           "event": [],

@@ -4,7 +4,6 @@ Authentication,verifyEmailAddress,POST,/api/v1/auth/verify-email,Verify an email
 Authentication,resendEmailVerification,POST,/api/v1/auth/resend-verification,Resend the verification email,public,ResendEmailVerificationRequest,202 ResendEmailVerificationResponse,422 429 500 503,,
 Authentication,loginWithPassword,POST,/api/v1/auth/login,Sign in with email and password,public,LoginWithPasswordRequest,200 LoginWithPasswordResponse,401 422 429 500 503,,
 Authentication,getLoginToken,GET,/api/v1/auth/gettoken,"Get the [key, iv] token for an encrypted login",public,,200 GetLoginTokenResponse,429 500 503,,
-Authentication,loginWithEncryptedPayload,POST,/api/v1/auth/login-encrypted,Sign in with an AES-encrypted payload,public,LoginWithEncryptedPayloadRequest,200 LoginWithEncryptedPayloadResponse,401 422 429 500 503,,
 Authentication,refreshAccessToken,POST,/api/v1/auth/refresh,Rotate the refresh token,public,RefreshAccessTokenRequest,200 RefreshAccessTokenResponse,401 422 429 500 503,,
 Authentication,logoutCurrentSession,POST,/api/v1/auth/logout,Revoke the current session,any signed-in user,,200 LogoutCurrentSessionResponse,401 403 429 500 503,,
 Authentication,logoutAllSessions,POST,/api/v1/auth/logout-all,Revoke all sessions of the user,any signed-in user,,200 LogoutAllSessionsResponse,401 403 429 500 503,,

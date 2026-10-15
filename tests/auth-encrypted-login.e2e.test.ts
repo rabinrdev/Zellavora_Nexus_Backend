@@ -6,41 +6,48 @@ let ctx: TestCtx;
 beforeAll(async () => { ctx = await getCtx(); });
 afterAll(async () => { await ctx.close(); });
 
-const encryptLike = (token: string[], payload: unknown) => {
-  const [key, iv] = token as [string, string];
-  // same result as CryptoJS.AES.encrypt(json, Base64.parse(key), { iv, CBC, Pkcs7 }).toString()
+// same result as CryptoJS.AES.encrypt(value, Base64.parse(key), { iv, CBC, Pkcs7 }).toString()
+const enc = (tokenkeys: string[], value: string) => {
+  const [key, iv] = tokenkeys as [string, string];
   const c = createCipheriv('aes-256-cbc', Buffer.from(key, 'base64'), Buffer.from(iv, 'base64'));
-  return Buffer.concat([c.update(JSON.stringify(payload), 'utf8'), c.final()]).toString('base64');
+  return Buffer.concat([c.update(value, 'utf8'), c.final()]).toString('base64');
 };
+const getToken = async () => (await ctx.api.get('/api/v1/auth/gettoken')).body.data as string[];
 
-describe('encrypted login', () => {
-  it('gettoken → encrypt → login-encrypted returns a token bundle', async () => {
+describe('login with encrypted fields (single /auth/login)', () => {
+  it('gettoken returns [key, iv] and login accepts the AuthenticateUser shape', async () => {
     const a = await createActor(ctx, { kind: 'individual' });
-    const t = await ctx.api.get('/api/v1/auth/gettoken');
-    expect(t.status).toBe(200);
-    const token = t.body.data;
-    const r = await ctx.api.post('/api/v1/auth/login-encrypted')
-      .send({ token, data: encryptLike(token, { email: a.email, password: STRONG_PASSWORD }) });
+    const tokenkeys = await getToken();
+    expect(tokenkeys).toHaveLength(2);
+    const r = await ctx.api.post('/api/v1/auth/login')
+      .send({ userLoginId: enc(tokenkeys, a.email), password: enc(tokenkeys, STRONG_PASSWORD), tokenkeys });
     expect(r.status).toBe(200);
     expect(r.body.data.accessToken).toBeTruthy();
   });
 
-  it('rejects a payload encrypted with the wrong key and a tampered token', async () => {
-    const t = (await ctx.api.get('/api/v1/auth/gettoken')).body.data;
-    const other = (await ctx.api.get('/api/v1/auth/gettoken')).body.data;
-    const bad = await ctx.api.post('/api/v1/auth/login-encrypted')
-      .send({ token: t, data: encryptLike(other, { email: 'x@example.test', password: 'x' }) });
+  it('rejects fields encrypted with another token and forged tokenkeys', async () => {
+    const t = await getToken();
+    const other = await getToken();
+    const bad = await ctx.api.post('/api/v1/auth/login')
+      .send({ userLoginId: enc(other, 'x@example.test'), password: enc(other, 'x'), tokenkeys: t });
     expect(bad.status).toBe(422);
-    const tampered = await ctx.api.post('/api/v1/auth/login-encrypted')
-      .send({ token: [t[0].slice(0, -2) + 'AA', t[1]], data: encryptLike(t, { email: 'x@example.test', password: 'x' }) });
-    expect(tampered.status).toBe(422);
+    const forged = [t[0]!.slice(0, -2) + 'AA', t[1]!];
+    const r = await ctx.api.post('/api/v1/auth/login')
+      .send({ userLoginId: enc(forged, 'x@example.test'), password: enc(forged, 'x'), tokenkeys: forged });
+    expect(r.status).toBe(422);
   });
 
-  it('wrong password is a 401 like the plain login', async () => {
+  it('wrong encrypted password is a 401 like the plain login', async () => {
     const a = await createActor(ctx, { kind: 'individual' });
-    const t = (await ctx.api.get('/api/v1/auth/gettoken')).body.data;
-    const r = await ctx.api.post('/api/v1/auth/login-encrypted')
-      .send({ token: t, data: encryptLike(t, { email: a.email, password: 'Wrong-Password-1!' }) });
+    const t = await getToken();
+    const r = await ctx.api.post('/api/v1/auth/login')
+      .send({ userLoginId: enc(t, a.email), password: enc(t, 'Wrong-Password-1!'), tokenkeys: t });
     expect(r.status).toBe(401);
+  });
+
+  it('plain email/password still works', async () => {
+    const a = await createActor(ctx, { kind: 'individual' });
+    const r = await ctx.api.post('/api/v1/auth/login').send({ email: a.email, password: STRONG_PASSWORD });
+    expect(r.status).toBe(200);
   });
 });

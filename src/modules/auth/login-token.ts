@@ -10,8 +10,8 @@ export const LOGIN_TOKEN_TTL_SECONDS = 300;
 export const loginTokenSchema = z.array(z.string().min(16).max(64)).length(2);
 export const loginTokenResponse = z.array(z.string()).min(2).max(2);
 
-const invalid = (field: 'token' | 'data') =>
-  new AppError('VALIDATION_FAILED', 'The encrypted login payload could not be read', [{ field, issue: 'invalid_or_expired' }]);
+const invalid = (field: string) =>
+  new AppError('VALIDATION_FAILED', 'The encrypted login fields could not be read', [{ field, issue: 'invalid_or_expired' }]);
 
 /** key = HMAC-SHA256(server key, "login-token" || iv): the server can re-derive and verify it, so nothing is stored. */
 const deriveKey = (keys: KeyProvider, iv: Buffer): Buffer =>
@@ -27,17 +27,22 @@ export function issueLoginToken(keys: KeyProvider, now: Date): [string, string] 
   return [deriveKey(keys, iv).toString('base64'), iv.toString('base64')];
 }
 
-/** Verifies the `[key, iv]` token and decrypts `data` (base64 from CryptoJS.AES.encrypt(...).toString()). */
-export function decryptLoginPayload(keys: KeyProvider, now: Date, token: string[], data: string): unknown {
+/** Verifies a `[key, iv]` token (issued by us, not expired) and returns the AES key and IV. */
+export function openLoginToken(keys: KeyProvider, now: Date, token: string[]): { key: Buffer; iv: Buffer } {
   const [keyB64, ivB64] = token as [string, string];
   const iv = Buffer.from(ivB64, 'base64');
-  if (iv.length !== 16 || iv.readUInt32BE(0) < Math.floor(now.getTime() / 1000)) throw invalid('token');
+  if (iv.length !== 16 || iv.readUInt32BE(0) < Math.floor(now.getTime() / 1000)) throw invalid('tokenkeys');
   const key = deriveKey(keys, iv);
-  if (!safeEqual(key.toString('base64'), keyB64)) throw invalid('token');
+  if (!safeEqual(key.toString('base64'), keyB64)) throw invalid('tokenkeys');
+  return { key, iv };
+}
+
+/** Decrypts one field (base64 of CryptoJS.AES.encrypt(value, key, { iv }).toString()). */
+export function decryptField(k: { key: Buffer; iv: Buffer }, value: string, field: string): string {
   try {
-    const d = createDecipheriv('aes-256-cbc', key, iv);
-    return JSON.parse(Buffer.concat([d.update(Buffer.from(data, 'base64')), d.final()]).toString('utf8'));
+    const d = createDecipheriv('aes-256-cbc', k.key, k.iv);
+    return Buffer.concat([d.update(Buffer.from(value, 'base64')), d.final()]).toString('utf8');
   } catch {
-    throw invalid('data');
+    throw invalid(field);
   }
 }

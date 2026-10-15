@@ -291,7 +291,6 @@ export const OPERATIONS = {
   listWorkflowFailures: { method: 'get', path: '/api/v1/workflows/failures' },
   listWorkflows: { method: 'get', path: '/api/v1/workflows' },
   loginToPortal: { method: 'post', path: '/api/v1/portal/auth/login' },
-  loginWithEncryptedPayload: { method: 'post', path: '/api/v1/auth/login-encrypted' },
   loginWithPassword: { method: 'post', path: '/api/v1/auth/login' },
   logoutAllSessions: { method: 'post', path: '/api/v1/auth/logout-all' },
   logoutCurrentSession: { method: 'post', path: '/api/v1/auth/logout' },

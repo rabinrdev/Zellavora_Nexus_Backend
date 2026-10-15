@@ -5,7 +5,7 @@ import type { RateLimiter } from '../../platform/rate-limit.js';
 import { withUser } from '../../platform/scope.js';
 import { AppError } from '../../platform/errors.js';
 import * as svc from './service.js';
-import { issueLoginToken, decryptLoginPayload, loginTokenResponse, loginTokenSchema } from './login-token.js';
+import { issueLoginToken, openLoginToken, decryptField, loginTokenResponse, loginTokenSchema } from './login-token.js';
 
 const email = z.string().trim().toLowerCase().email().max(254);
 const password = z.string().min(1).max(256);
@@ -22,11 +22,21 @@ const tokenBundle = z.object({
   organizationId: z.string().nullable(), mfaSetupRequired: z.boolean(),
 });
 
-const loginBody = z.object({
-  email, password,
-  organizationCode: z.string().trim().max(40).optional(),
-  mfaCode: z.string().trim().max(64).optional(),
-});
+/**
+ * Plain: `{ email, password }`. Encrypted (AuthenticateUser shape): `{ userLoginId, password, tokenkeys: [key, iv] }` with
+ * `userLoginId` and `password` AES-256-CBC encrypted (base64) using the `tokenkeys` from `GET /auth/gettoken`.
+ */
+const loginBody = z
+  .object({
+    email: email.optional(),
+    userLoginId: z.string().max(1024).optional(),
+    password: z.string().min(1).max(1024),
+    tokenkeys: loginTokenSchema.optional(),
+    organizationCode: z.string().trim().max(40).optional(),
+    clientCode: z.string().trim().max(40).optional(),
+    mfaCode: z.string().trim().max(64).optional(),
+  })
+  .refine((b) => (b.tokenkeys ? !!b.userLoginId : !!b.email), { message: 'email, or userLoginId with tokenkeys, is required', path: ['email'] });
 
 const loginResponse = tokenBundle.extend({
   organizations: z.array(z.object({ id: z.string(), name: z.string(), code: z.string() })),
@@ -75,8 +85,18 @@ defineRoute({
   body: loginBody,
   response: loginResponse,
   async handler(c) {
-    await limiter(c).consume('auth', `acct:${c.body.email}`);
-    return { status: 200, data: await svc.login(c.svc, c.body, meta(c)) };
+    const b = c.body;
+    let emailAddr = b.email ?? '';
+    let pwd = b.password;
+    if (b.tokenkeys) {
+      const k = openLoginToken(c.svc.keys, c.svc.now(), b.tokenkeys);
+      emailAddr = decryptField(k, b.userLoginId!, 'userLoginId').trim().toLowerCase();
+      pwd = decryptField(k, b.password, 'password');
+      if (!email.safeParse(emailAddr).success) throw new AppError('VALIDATION_FAILED', 'Request validation failed', [{ field: 'userLoginId', issue: 'invalid_email' }]);
+    }
+    await limiter(c).consume('auth', `acct:${emailAddr}`);
+    const input = { email: emailAddr, password: pwd, organizationCode: b.organizationCode ?? b.clientCode, mfaCode: b.mfaCode };
+    return { status: 200, data: await svc.login(c.svc, input, meta(c)) };
   },
 });
 
@@ -85,23 +105,6 @@ defineRoute({
   access: 'public', rateLimit: 'auth', response: loginTokenResponse,
   async handler(c) {
     return { status: 200, data: issueLoginToken(c.svc.keys, c.svc.now()) };
-  },
-});
-
-defineRoute({
-  method: 'post', path: '/auth/login-encrypted', module: MODULE, summary: 'Sign in with an AES-encrypted payload',
-  access: 'public', rateLimit: 'auth',
-  body: z.object({ token: loginTokenSchema, data: z.string().min(16).max(4096) }),
-  response: loginResponse,
-  async handler(c) {
-    const raw = decryptLoginPayload(c.svc.keys, c.svc.now(), c.body.token, c.body.data);
-    const parsed = loginBody.safeParse(raw);
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_FAILED', 'Request validation failed',
-        parsed.error.issues.map((i) => ({ field: ['data', ...i.path].join('.'), issue: i.message })));
-    }
-    await limiter(c).consume('auth', `acct:${parsed.data.email}`);
-    return { status: 200, data: await svc.login(c.svc, parsed.data, meta(c)) };
   },
 });
 

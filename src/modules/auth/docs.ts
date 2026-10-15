@@ -12,17 +12,12 @@ documentRoutes({
   resendEmailVerification: { description: 'Sends a fresh verification mail. Always `202` (no enumeration).' },
   loginWithPassword: {
     errors: [401],
-    description: 'Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: "mfaCode", issue: "mfa_required" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.',
-    requestExamples: { password: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9' }, withMfa: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9', mfaCode: '123456' } },
+    description: 'Accepts plain credentials or the encrypted `AuthenticateUser` shape: call `getLoginToken` first, then send `userLoginId` (email) and `password` AES-256-CBC encrypted (base64, PKCS7) with `tokenkeys` = the `[key, iv]` array. A forged/expired `tokenkeys` or undecryptable field returns `422` (`invalid_or_expired`). `clientCode` is used as `organizationCode` when that is absent. Signs in and returns the token bundle. Failed attempts increase a lockout (see the security policy). `401 UNAUTHENTICATED` is returned for wrong credentials, unverified or locked accounts and when MFA is required but `mfaCode` is missing (`details[0] = { field: "mfaCode", issue: "mfa_required" }`). A user in several organizations passes `organizationCode`; otherwise the last/only one is used.',
+    requestExamples: { encrypted: { userLoginId: 'U17tXqkiF0JMSzWMpNXPPg==', password: 'yHbUckhfMTLcSmJwgYQzMg==', tokenkeys: ['bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=', 'AAAAAGl2LWV4YW1wbGUtMTI='], clientCode: 'DC' }, password: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9' }, withMfa: { email: 'amelia.hart@example.test', password: 'Correct-Horse-Battery-9', mfaCode: '123456' } },
   },
   getLoginToken: {
     description: 'Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.',
     responseExample: ['bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=', 'AAAAAGl2LWV4YW1wbGUtMTI='],
-  },
-  loginWithEncryptedPayload: {
-    errors: [401],
-    description: 'Step 2 of the encrypted sign-in. Send the `token` array from `getLoginToken` and `data` = base64 AES-256-CBC (PKCS7) ciphertext of the JSON login payload `{ email, password, organizationCode?, mfaCode? }`. Behaves like `loginWithPassword` and returns the same token bundle. A forged, unreadable or expired token/payload returns `422` (`details[0].issue = "invalid_or_expired"`); credential failures return `401`. With crypto-js: `CryptoJS.AES.encrypt(JSON.stringify({ email, password }), CryptoJS.enc.Base64.parse(token[0]), { iv: CryptoJS.enc.Base64.parse(token[1]), mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString()`.',
-    requestExamples: { encrypted: { token: ['bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=', 'AAAAAGl2LWV4YW1wbGUtMTI='], data: 'U2FsdGVkX1+Zx0cGxhY2Vob2xkZXItY2lwaGVydGV4dA==' } },
   },
   refreshAccessToken: { errors: [401], description: 'Exchanges the refresh token for a new access token **and a new refresh token** (rotation). Re-using an already rotated token revokes the whole session family (`401`).' },
   logoutCurrentSession: { description: 'Revokes the current session; its tokens stop working immediately.' },
