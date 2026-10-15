@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { Knex } from 'knex';
 import { AppError } from '../../platform/errors.js';
 import { newId, randomToken, sha256, encrypt, decrypt } from '../../platform/crypto.js';
@@ -143,6 +144,44 @@ export async function resetPassword(svc: Services, token: string, newPassword: s
   });
 }
 
+/** Whether a password-reset token is still usable (lets the UI show the form or an "expired" page before submit). */
+export async function validateResetToken(svc: Services, token: string): Promise<boolean> {
+  return withPlatformScope(svc.db, 'reset-token-validate', async (trx) => {
+    const row = await trx('verification_tokens')
+      .where({ token_hash: sha256(token), purpose: 'password_reset' }).whereNull('used_at').where('expires_at', '>', svc.now()).first();
+    return !!row;
+  });
+}
+
+/** Re-authenticates with the current password; other sessions are revoked, the caller's stays signed in. */
+export async function changePassword(
+  svc: Services, userId: string, sessionId: string, currentPassword: string, newPassword: string, m: ReqMeta,
+): Promise<{ revokedSessions: number }> {
+  const policy = await loadSecurityPolicy(svc.db, null);
+  return withPlatformScope(svc.db, 'change-password', async (trx) => {
+    const user = await trx('users').where({ id: userId, status: 'active' }).first();
+    if (!user || !user.password_hash) throw unauth();
+    if (!(await verifyPassword(user.password_hash, currentPassword))) {
+      await recordSecurityEvent(trx, rm(m, null, userId), 'password_change_failed', 'failure');
+      throw new AppError('VALIDATION_FAILED', 'Current password is incorrect', [{ field: 'currentPassword', issue: 'incorrect' }]);
+    }
+    if (currentPassword === newPassword) {
+      throw new AppError('VALIDATION_FAILED', 'Password does not meet the policy', [{ field: 'newPassword', issue: 'must differ from the current password' }]);
+    }
+    await enforcePasswordPolicy(trx, newPassword, policy, { email: user.email, userId });
+    const hash = await hashPassword(newPassword);
+    await trx('users').where({ id: userId }).update({
+      password_hash: hash, password_changed_at: svc.now(), updated_at: svc.now(),
+    });
+    await trx('password_history').insert({ id: newId(), user_id: userId, password_hash: hash });
+    const revoked = await trx('sessions').where({ user_id: userId }).whereNull('revoked_at').whereNot({ id: sessionId })
+      .update({ revoked_at: svc.now(), revoked_reason: 'password_changed' });
+    await recordSecurityEvent(trx, rm(m, null, userId), 'password_changed', 'success', { revokedSessions: revoked });
+    await svc.mail.send({ to: user.email, subject: 'Your password was changed', text: 'Your password was just changed. If this was not you, reset your password immediately.' });
+    return { revokedSessions: revoked };
+  });
+}
+
 export interface LoginInput { email: string; password: string; organizationCode?: string; mfaCode?: string }
 
 export interface TokenBundle {
@@ -181,6 +220,64 @@ async function consumeRecoveryCode(trx: Trx, userId: string, code: string): Prom
   return true;
 }
 
+// ---- email one-time codes (second factor) -------------------------------------------------------------------
+
+const EMAIL_OTP_TTL_MINUTES = 10;
+const EMAIL_OTP_RESEND_SECONDS = 60;
+type OtpPurpose = 'mfa_email_login' | 'mfa_email_enrol';
+const otpHash = (userId: string, purpose: OtpPurpose, code: string) => sha256(`${userId}:${purpose}:${code.trim()}`);
+
+/** Mails a fresh 6-digit code and invalidates earlier ones. Skips the send when one went out in the last minute. */
+async function sendEmailOtp(svc: Services, trx: Trx, user: { id: string; email: string }, purpose: OtpPurpose): Promise<void> {
+  const now = svc.now();
+  const recent = await trx('verification_tokens').where({ user_id: user.id, purpose }).whereNull('used_at')
+    .where('expires_at', '>', now).where('created_at', '>', new Date(now.getTime() - EMAIL_OTP_RESEND_SECONDS * 1000)).first();
+  if (recent) return;
+  await trx('verification_tokens').where({ user_id: user.id, purpose }).whereNull('used_at').update({ used_at: now });
+  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+  await trx('verification_tokens').insert({
+    id: newId(), user_id: user.id, purpose, token_hash: otpHash(user.id, purpose, code),
+    expires_at: new Date(now.getTime() + EMAIL_OTP_TTL_MINUTES * 60_000),
+  });
+  await svc.mail.send({
+    to: user.email,
+    subject: purpose === 'mfa_email_enrol' ? 'Your two-factor setup code' : 'Your sign-in code',
+    text: `Your verification code is ${code}. It expires in ${EMAIL_OTP_TTL_MINUTES} minutes. If you did not request it, change your password.`,
+  });
+}
+
+async function consumeEmailOtp(svc: Services, trx: Trx, userId: string, purpose: OtpPurpose, code: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(code.trim())) return false;
+  const row = await trx('verification_tokens')
+    .where({ token_hash: otpHash(userId, purpose, code), purpose }).whereNull('used_at').where('expires_at', '>', svc.now()).first();
+  if (!row) return false;
+  await trx('verification_tokens').where({ id: row.id }).update({ used_at: svc.now() });
+  return true;
+}
+
+/** TOTP or emailed code (recovery codes are checked by the callers that accept them). */
+async function checkSecondFactor(svc: Services, trx: Trx, userId: string, code: string): Promise<boolean> {
+  const factors: { type: string; secret_encrypted: string }[] = await trx('mfa_factors').where({ user_id: userId }).whereNotNull('confirmed_at');
+  const totp = factors.find((f) => f.type === 'totp');
+  if (totp && /^\d{6}$/.test(code.trim()) && verifyTotp(decrypt(svc.keys, totp.secret_encrypted), code)) return true;
+  if (factors.some((f) => f.type === 'email_otp')) return consumeEmailOtp(svc, trx, userId, 'mfa_email_login', code);
+  return false;
+}
+
+/** Counts a failed attempt (password or second factor) and locks the account with exponential back-off past the threshold. */
+async function countFailure(
+  trx: Trx, user: { id: string; failed_login_count: number }, policy: SecurityPolicy, now: Date, m: ReqMeta, organizationId: string | null = null,
+): Promise<void> {
+  const count = user.failed_login_count + 1;
+  const patch: Record<string, unknown> = { failed_login_count: count };
+  if (count >= policy.lockout.threshold) {
+    const minutes = Math.min(policy.lockout.maxMinutes, policy.lockout.baseMinutes * 2 ** (count - policy.lockout.threshold));
+    patch.locked_until = new Date(now.getTime() + minutes * 60_000);
+    await recordSecurityEvent(trx, rm(m, organizationId, user.id), 'account_locked', 'denied', { minutes });
+  }
+  await trx('users').where({ id: user.id }).update(patch);
+}
+
 export async function login(svc: Services, input: LoginInput, m: ReqMeta): Promise<TokenBundle & { organizations: { id: string; name: string; code: string }[] }> {
   const email = input.email.toLowerCase();
   const now = svc.now();
@@ -199,14 +296,7 @@ export async function login(svc: Services, input: LoginInput, m: ReqMeta): Promi
     }
     const ok = await verifyPassword(user.password_hash, input.password);
     if (!ok) {
-      const count = user.failed_login_count + 1;
-      const patch: Record<string, unknown> = { failed_login_count: count };
-      if (count >= policy.lockout.threshold) {
-        const minutes = Math.min(policy.lockout.maxMinutes, policy.lockout.baseMinutes * 2 ** (count - policy.lockout.threshold));
-        patch.locked_until = new Date(now.getTime() + minutes * 60_000);
-        await recordSecurityEvent(trx, rm(m, null, user.id), 'account_locked', 'denied', { minutes });
-      }
-      await trx('users').where({ id: user.id }).update(patch);
+      await countFailure(trx, user, policy, now, m);
       await recordSecurityEvent(trx, rm(m, null, user.id), 'login_failed', 'failure', { reason: 'bad_password' });
       return { failure: unauth() };
     }
@@ -238,14 +328,24 @@ export async function login(svc: Services, input: LoginInput, m: ReqMeta): Promi
     }
 
     // MFA
-    const factor = await trx('mfa_factors').where({ user_id: user.id }).whereNotNull('confirmed_at').first();
+    const factors: { type: string }[] = await trx('mfa_factors').where({ user_id: user.id }).whereNotNull('confirmed_at');
+    const factor = factors[0];
     const orgPolicy = await loadSecurityPolicy(svc.db, organizationId);
     let mfaVerified = false;
     if (factor) {
-      if (!input.mfaCode) return { failure: unauth('MFA code required', [{ field: 'mfaCode', issue: 'mfa_required' }]) };
-      const secret = decrypt(svc.keys, factor.secret_encrypted);
-      mfaVerified = verifyTotp(secret, input.mfaCode) || (await consumeRecoveryCode(trx, user.id, input.mfaCode));
+      const usesEmail = !factors.some((f) => f.type === 'totp');
+      if (!input.mfaCode) {
+        if (usesEmail) await sendEmailOtp(svc, trx, user, 'mfa_email_login');
+        return {
+          failure: unauth('MFA code required', [
+            { field: 'mfaCode', issue: 'mfa_required' },
+            { field: 'mfaMethod', issue: usesEmail ? 'email_otp' : 'totp' },
+          ]),
+        };
+      }
+      mfaVerified = (await checkSecondFactor(svc, trx, user.id, input.mfaCode)) || (await consumeRecoveryCode(trx, user.id, input.mfaCode));
       if (!mfaVerified) {
+        await countFailure(trx, user, policy, now, m, organizationId);
         await recordSecurityEvent(trx, rm(m, organizationId, user.id), 'mfa_failed', 'failure');
         return { failure: unauth() };
       }
@@ -352,10 +452,10 @@ export async function switchOrganization(svc: Services, sessionId: string, userI
 export async function mfaSetup(svc: Services, userId: string): Promise<{ secret: string; otpauthUrl: string }> {
   return withPlatformScope(svc.db, 'mfa-setup', async (trx) => {
     const user = await trx('users').where({ id: userId }).first();
-    const existing = await trx('mfa_factors').where({ user_id: userId }).first();
+    const existing = await trx('mfa_factors').where({ user_id: userId, type: 'totp' }).first();
     if (existing?.confirmed_at) throw new AppError('CONFLICT', 'MFA is already enabled');
     const secret = newTotpSecret();
-    await trx('mfa_factors').where({ user_id: userId }).delete();
+    await trx('mfa_factors').where({ user_id: userId, type: 'totp' }).delete();
     await trx('mfa_factors').insert({ id: newId(), user_id: userId, type: 'totp', secret_encrypted: encrypt(svc.keys, secret) });
     return { secret, otpauthUrl: totpUri(secret, user.email) };
   });
@@ -374,7 +474,7 @@ async function storeRecoveryCodes(trx: Trx, userId: string): Promise<string[]> {
 
 export async function mfaConfirm(svc: Services, userId: string, sessionId: string, code: string, m: ReqMeta): Promise<string[]> {
   return withPlatformScope(svc.db, 'mfa-confirm', async (trx) => {
-    const f = await trx('mfa_factors').where({ user_id: userId }).whereNull('confirmed_at').first();
+    const f = await trx('mfa_factors').where({ user_id: userId, type: 'totp' }).whereNull('confirmed_at').first();
     if (!f || !verifyTotp(decrypt(svc.keys, f.secret_encrypted), code)) {
       throw new AppError('VALIDATION_FAILED', 'Invalid code', [{ field: 'code', issue: 'invalid' }]);
     }
@@ -390,8 +490,111 @@ async function requireMfaProof(svc: Services, trx: Trx, userId: string, password
   if (password !== undefined && !(await verifyPassword(user.password_hash, password))) throw new AppError('FORBIDDEN', 'Password confirmation failed');
   const f = await trx('mfa_factors').where({ user_id: userId }).whereNotNull('confirmed_at').first();
   if (!f) throw new AppError('CONFLICT', 'MFA is not enabled');
-  const ok = verifyTotp(decrypt(svc.keys, f.secret_encrypted), code) || (await consumeRecoveryCode(trx, userId, code));
+  const ok = (await checkSecondFactor(svc, trx, userId, code)) || (await consumeRecoveryCode(trx, userId, code));
   if (!ok) throw new AppError('FORBIDDEN', 'Invalid code');
+}
+
+/** Verifies a TOTP or emailed code for a session that must pass MFA. */
+export async function mfaVerifyCode(svc: Services, userId: string, sessionId: string, code: string): Promise<boolean> {
+  return withPlatformScope(svc.db, 'mfa-verify', async (trx) => {
+    const ok = await checkSecondFactor(svc, trx, userId, code);
+    if (ok) await trx('sessions').where({ id: sessionId }).update({ mfa_verified: true, pending_mfa: false });
+    return ok;
+  });
+}
+
+/** Mails a sign-in style code to the signed-in user (to verify a session, disable MFA or regenerate recovery codes). */
+export async function mfaEmailSend(svc: Services, userId: string): Promise<void> {
+  await withPlatformScope(svc.db, 'mfa-email-send', async (trx) => {
+    const factor = await trx('mfa_factors').where({ user_id: userId, type: 'email_otp' }).whereNotNull('confirmed_at').first();
+    if (!factor) throw new AppError('CONFLICT', 'Email code MFA is not enabled');
+    const user = await trx('users').where({ id: userId }).first();
+    await sendEmailOtp(svc, trx, user, 'mfa_email_login');
+  });
+}
+
+/** Starts email-code enrolment: mails a code to the account address. */
+export async function mfaEmailSetup(svc: Services, userId: string): Promise<void> {
+  await withPlatformScope(svc.db, 'mfa-email-setup', async (trx) => {
+    const existing = await trx('mfa_factors').where({ user_id: userId, type: 'email_otp' }).whereNotNull('confirmed_at').first();
+    if (existing) throw new AppError('CONFLICT', 'Email code MFA is already enabled');
+    const user = await trx('users').where({ id: userId }).first();
+    await sendEmailOtp(svc, trx, user, 'mfa_email_enrol');
+  });
+}
+
+/** Confirms the emailed code and activates the factor. Returns recovery codes only when the user has none yet. */
+export async function mfaEmailConfirm(svc: Services, userId: string, sessionId: string, code: string, m: ReqMeta): Promise<string[]> {
+  return withPlatformScope(svc.db, 'mfa-email-confirm', async (trx) => {
+    if (!(await consumeEmailOtp(svc, trx, userId, 'mfa_email_enrol', code))) {
+      throw new AppError('VALIDATION_FAILED', 'Invalid code', [{ field: 'code', issue: 'invalid' }]);
+    }
+    await trx('mfa_factors').where({ user_id: userId, type: 'email_otp' }).delete();
+    await trx('mfa_factors').insert({
+      id: newId(), user_id: userId, type: 'email_otp', secret_encrypted: encrypt(svc.keys, 'email'), confirmed_at: svc.now(),
+    });
+    await trx('sessions').where({ id: sessionId }).update({ pending_mfa: false, mfa_verified: true });
+    await recordSecurityEvent(trx, rm(m, null, userId), 'mfa_enabled', 'success', { method: 'email_otp' });
+    const unused = await trx('mfa_recovery_codes').where({ user_id: userId }).whereNull('used_at').first();
+    return unused ? [] : storeRecoveryCodes(trx, userId);
+  });
+}
+
+// ---- public config, invitation preview, security overview -----------------------------------------------------
+
+export async function publicConfig(svc: Services) {
+  const policy = await loadSecurityPolicy(svc.db, null);
+  return {
+    selfRegistration: { enabled: true, kinds: ['individual', 'organization'] as string[] },
+    requireEmailVerification: true,
+    passwordPolicy: {
+      minLength: policy.password.minLength, requireClasses: policy.password.requireClasses, historyDepth: policy.password.historyDepth,
+    },
+    mfaMethods: ['totp', 'email_otp'] as string[],
+    encryptedLogin: true,
+  };
+}
+
+export type InvitationState = 'valid' | 'invalid' | 'expired' | 'used' | 'revoked';
+
+/** Read-only look at an invitation so the UI can pick "set a password" vs "sign in" before submitting. */
+export async function previewInvitation(svc: Services, token: string) {
+  return withPlatformScope(svc.db, 'invitation-preview', async (trx) => {
+    const inv = await trx('invitations as i').join('organizations as o', 'o.id', 'i.organization_id')
+      .where({ 'i.token_hash': sha256(token) })
+      .select('i.email', 'i.status', 'i.expires_at', 'o.name as organization_name').first();
+    if (!inv) return { state: 'invalid' as InvitationState };
+    let state: InvitationState = 'valid';
+    if (inv.status === 'accepted') state = 'used';
+    else if (inv.status === 'revoked') state = 'revoked';
+    else if (inv.status === 'expired' || new Date(inv.expires_at) <= svc.now()) state = 'expired';
+    if (state !== 'valid') return { state };
+    const existing = await trx('users').where({ email: String(inv.email).toLowerCase() }).first();
+    return { state, email: inv.email as string, organizationName: inv.organization_name as string, accountExists: !!existing };
+  });
+}
+
+export async function securityOverview(svc: Services, userId: string, organizationId: string | null) {
+  return withPlatformScope(svc.db, 'security-overview', async (trx) => {
+    const user = await trx('users').where({ id: userId }).first();
+    const factors: { type: string }[] = await trx('mfa_factors').where({ user_id: userId }).whereNotNull('confirmed_at');
+    const remaining = await trx('mfa_recovery_codes').where({ user_id: userId }).whereNull('used_at').count<{ count: string }[]>('id as count');
+    const events = await trx('security_events').where({ user_id: userId }).orderBy('occurred_at', 'desc').limit(10)
+      .select('id', 'event', 'outcome', 'ip', 'user_agent', 'occurred_at');
+    const policy = await loadSecurityPolicy(svc.db, organizationId);
+    return {
+      emailVerified: !!user.email_verified_at,
+      passwordChangedAt: user.password_changed_at ? new Date(user.password_changed_at).toISOString() : null,
+      mfaEnabled: factors.length > 0,
+      mfaMethods: factors.map((f) => f.type),
+      recoveryCodesRemaining: Number(remaining[0]?.count ?? 0),
+      mfaRequiredByOrganization: !!organizationId && (policy.mfa.requiredForAll || policy.mfa.requiredForRoles.length > 0),
+      recentEvents: events.map((e) => ({
+        id: e.id as string, event: e.event as string, outcome: e.outcome as string, ip: (e.ip as string | null) ?? null,
+        userAgent: (e.user_agent as string | null) ?? null, occurredAt: new Date(e.occurred_at).toISOString(),
+      })),
+    };
+  });
 }
 
 export async function mfaDisable(svc: Services, userId: string, password: string, code: string, m: ReqMeta): Promise<void> {

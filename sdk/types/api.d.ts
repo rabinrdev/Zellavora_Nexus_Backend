@@ -133,7 +133,7 @@ export interface paths {
         };
         /**
          * Get the [key, iv] token for an encrypted login
-         * @description Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.
+         * @description Step 1 of the encrypted sign-in. **The body is the bare JSON array, not the usual envelope** (fixed wire contract for existing clients). It is an array of two hex strings: `[key, iv]` (AES-256 key = 64 hex chars, 16-byte IV = 32 hex chars; parse both as hex), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.
          *
          *     | | |
          *     |---|---|
@@ -304,6 +304,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/reset-password/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check that a password reset token is still valid
+         * @description Returns `{ valid }` for a reset token so the UI can show the form or an expired-link page before the user types a password. Does not consume the token.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | None (public) |
+         *     | **Required permission** | None |
+         *     | **Tenant scoped** | No — platform level |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["checkPasswordResetToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change my password (current password required)
+         * @description Changes the signed-in user's password. Requires the current password (`422` `currentPassword` when wrong) and the new one must satisfy the password policy and not be a recent password. All **other** sessions are revoked; the caller stays signed in. A confirmation email is sent.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my active sessions
+         * @description Active sessions of the user; `current` marks the one making the request.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `default` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        get: operations["listMySessions"];
+        put?: never;
+        post?: never;
+        /**
+         * Revoke all my other sessions
+         * @description Revokes every session of the user except the one making the request. Returns the number revoked.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `default` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        delete: operations["revokeOtherSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/invitations/accept": {
         parameters: {
             query?: never;
@@ -386,36 +490,6 @@ export interface paths {
          *     _Module: Authentication · MVP_
          */
         get: operations["getCurrentUser"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my active sessions
-         * @description Active sessions of the user; `current` marks the one making the request.
-         *
-         *     | | |
-         *     |---|---|
-         *     | **Authentication** | Bearer access token |
-         *     | **Required permission** | Any signed-in user |
-         *     | **Tenant scoped** | No — acts on the signed-in user |
-         *     | **Idempotency** | Not applicable |
-         *     | **Rate limit** | `default` bucket (429 + `Retry-After`) |
-         *
-         *     _Module: Authentication · MVP_
-         */
-        get: operations["listMySessions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -524,8 +598,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Verify a TOTP or recovery code for the session
-         * @description Completes MFA for a session that must verify; returns `{ verified }`.
+         * Verify a TOTP or emailed code for the session
+         * @description Completes MFA (TOTP or emailed code) for a session that must verify; returns `{ verified }`.
          *
          *     | | |
          *     |---|---|
@@ -538,6 +612,186 @@ export interface paths {
          *     _Module: Authentication · MVP_
          */
         post: operations["verifyMfaCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/email/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin email code enrolment
+         * @description Emails a 6-digit code to the account address to enrol email-code MFA. Confirm it with `confirmEmailMfaEnrolment`. Codes expire after 10 minutes; a new one is sent at most once a minute.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `mfa` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["beginEmailMfaEnrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm email code enrolment
+         * @description Confirms the emailed code and activates email-code MFA. Returns one-time recovery codes only if the user has none unused yet.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `mfa` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["confirmEmailMfaEnrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/email/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email me a verification code
+         * @description Emails a fresh sign-in code to a user with email-code MFA, to verify a session, disable MFA or regenerate recovery codes. At the login itself the code is sent automatically when `mfaCode` is missing; `details` then contains `{ field: "mfaMethod", issue: "email_otp" }`.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `mfa` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["sendMfaEmailCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/security": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Security overview of my account
+         * @description Security posture of the signed-in user: email verification, password age, MFA methods, unused recovery codes, whether the organization requires MFA, and the last 10 security events. Works while MFA enrolment is pending.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | Bearer access token |
+         *     | **Required permission** | Any signed-in user |
+         *     | **Tenant scoped** | No — acts on the signed-in user |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `default` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        get: operations["getSecurityOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Public sign-in configuration
+         * @description Public sign-in configuration for the login and sign-up screens: password policy, registration kinds, available MFA methods. No authentication.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | None (public) |
+         *     | **Required permission** | None |
+         *     | **Tenant scoped** | No — platform level |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `auth` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        get: operations["getAuthConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/invitations/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview an organization invitation
+         * @description Read-only look at an invitation token: `state` (`valid`, `invalid`, `expired`, `used`, `revoked`) and, when valid, the invited email, organization name and whether an account already exists (sign in vs set a password). The token is not consumed.
+         *
+         *     | | |
+         *     |---|---|
+         *     | **Authentication** | None (public) |
+         *     | **Required permission** | None |
+         *     | **Tenant scoped** | No — platform level |
+         *     | **Idempotency** | Not applicable |
+         *     | **Rate limit** | `invitation` bucket (429 + `Retry-After`) |
+         *
+         *     _Module: Authentication · MVP_
+         */
+        post: operations["previewInvitation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -12773,86 +13027,8 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /** @description Success response of `getLoginToken`. */
-        GetLoginTokenResponse: {
-            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
-            errorMessage: {
-                /**
-                 * @description Message id (0 for API errors).
-                 * @example 0
-                 */
-                id: number;
-                /**
-                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
-                 * @example Resource not found
-                 */
-                msg: string;
-                /**
-                 * @description The msg type.
-                 * @example Error
-                 * @enum {string}
-                 */
-                msgType: "Error";
-                /**
-                 * @description Machine-readable error code.
-                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
-                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
-                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
-                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
-                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
-                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
-                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
-                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
-                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
-                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
-                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
-                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
-                 * @example NOT_FOUND
-                 * @enum {string}
-                 */
-                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
-                /**
-                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
-                 * @example body.name
-                 */
-                field?: string;
-                /**
-                 * @description What is wrong with that input. Validation entries only.
-                 * @example Too small: expected string to have >=2 characters
-                 */
-                issue?: string;
-            }[];
-            /** @description The info message. */
-            infoMessage: {
-                /**
-                 * @description Unique identifier (UUID).
-                 * @example 0
-                 */
-                id: number;
-                /**
-                 * @description Optional informational text for the user; `null` when there is none.
-                 * @example null
-                 */
-                msg: string | null;
-                /**
-                 * @description The msg type.
-                 * @example Information
-                 * @enum {string}
-                 */
-                msgType: "Information";
-            };
-            /**
-             * @description `true` for every non-2xx response.
-             * @example false
-             */
-            hasError: boolean;
-            /** @description The data. */
-            data: string[];
-            /** @description Operation-specific metadata. */
-            meta?: {
-                [key: string]: unknown;
-            };
-        };
+        /** @description Success response of `getLoginToken` (bare JSON, not the envelope). */
+        GetLoginTokenResponse: string[];
         /** @description Request body of `refreshAccessToken`. */
         RefreshAccessTokenRequest: {
             /** @description The refresh token. */
@@ -13292,6 +13468,267 @@ export interface components {
             data: {
                 /** @description Human-readable message. */
                 message: string;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Request body of `checkPasswordResetToken`. */
+        CheckPasswordResetTokenRequest: {
+            /** @description Opaque token issued by the API. */
+            token: string;
+        };
+        /** @description Success response of `checkPasswordResetToken`. */
+        CheckPasswordResetTokenResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The valid. */
+                valid: boolean;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Request body of `changePassword`. */
+        ChangePasswordRequest: {
+            /** @description The user's current password (re-confirmation). */
+            currentPassword: string;
+            /** @description The new password; must satisfy the organization password policy. */
+            newPassword: string;
+        };
+        /** @description Success response of `changePassword`. */
+        ChangePasswordResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The revoked sessions. */
+                revokedSessions: number;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `revokeOtherSessions`. */
+        RevokeOtherSessionsResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The revoked. */
+                revoked: number;
             };
             /** @description Operation-specific metadata. */
             meta?: {
@@ -13954,6 +14391,568 @@ export interface components {
             data: {
                 /** @description The verified. */
                 verified: boolean;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `beginEmailMfaEnrolment`. */
+        BeginEmailMfaEnrolmentResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description Human-readable message. */
+                message: string;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Request body of `confirmEmailMfaEnrolment`. */
+        ConfirmEmailMfaEnrolmentRequest: {
+            /** @description Short code (TOTP or recovery code, or a business code). */
+            code: string;
+        };
+        /** @description Success response of `confirmEmailMfaEnrolment`. */
+        ConfirmEmailMfaEnrolmentResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The recovery codes. */
+                recoveryCodes: string[];
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `sendMfaEmailCode`. */
+        SendMfaEmailCodeResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description Human-readable message. */
+                message: string;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `getSecurityOverview`. */
+        GetSecurityOverviewResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The email verified. */
+                emailVerified: boolean;
+                /** @description When password changed happened (ISO-8601 UTC). */
+                passwordChangedAt: string | null;
+                /** @description The mfa enabled. */
+                mfaEnabled: boolean;
+                /** @description The mfa methods. */
+                mfaMethods: string[];
+                /** @description The recovery codes remaining. */
+                recoveryCodesRemaining: number;
+                /** @description The mfa required by organization. */
+                mfaRequiredByOrganization: boolean;
+                /** @description The recent events. */
+                recentEvents: {
+                    /** @description Unique identifier (UUID). */
+                    id: string;
+                    /** @description The event. */
+                    event: string;
+                    /** @description The outcome. */
+                    outcome: string;
+                    /** @description The ip. */
+                    ip: string | null;
+                    /** @description The user agent. */
+                    userAgent: string | null;
+                    /** @description When occurred happened (ISO-8601 UTC). */
+                    occurredAt: string;
+                }[];
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Success response of `getAuthConfig`. */
+        GetAuthConfigResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /** @description The self registration. */
+                selfRegistration: {
+                    /** @description The enabled. */
+                    enabled: boolean;
+                    /** @description The kinds. */
+                    kinds: string[];
+                };
+                /** @description The require email verification. */
+                requireEmailVerification: boolean;
+                /** @description The password policy. */
+                passwordPolicy: {
+                    /** @description The min length. */
+                    minLength: number;
+                    /** @description The require classes. */
+                    requireClasses: number;
+                    /** @description The history depth. */
+                    historyDepth: number;
+                };
+                /** @description The mfa methods. */
+                mfaMethods: string[];
+                /** @description The encrypted login. */
+                encryptedLogin: boolean;
+            };
+            /** @description Operation-specific metadata. */
+            meta?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Request body of `previewInvitation`. */
+        PreviewInvitationRequest: {
+            /** @description Opaque token issued by the API. */
+            token: string;
+        };
+        /** @description Success response of `previewInvitation`. */
+        PreviewInvitationResponse: {
+            /** @description Empty on success. On errors the first entry is the summary, followed by one entry per invalid field. */
+            errorMessage: {
+                /**
+                 * @description Message id (0 for API errors).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Human-readable text, safe to show to end users. Validation entries read `field: issue`.
+                 * @example Resource not found
+                 */
+                msg: string;
+                /**
+                 * @description The msg type.
+                 * @example Error
+                 * @enum {string}
+                 */
+                msgType: "Error";
+                /**
+                 * @description Machine-readable error code.
+                 *     - `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.
+                 *     - `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a "you do not have access" message.
+                 *     - `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.
+                 *     - `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.
+                 *     - `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.
+                 *     - `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.
+                 *     - `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.
+                 *     - `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.
+                 *     - `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.
+                 *     - `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.
+                 *     - `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.
+                 *     - `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.
+                 * @example NOT_FOUND
+                 * @enum {string}
+                 */
+                code: "UNAUTHENTICATED" | "FORBIDDEN" | "TENANT_SUSPENDED" | "NOT_FOUND" | "CONFLICT" | "PRECONDITION_FAILED" | "VALIDATION_FAILED" | "IDEMPOTENCY_KEY_REUSED" | "PLAN_LIMIT_EXCEEDED" | "RATE_LIMITED" | "MAINTENANCE" | "INTERNAL";
+                /**
+                 * @description Dotted path of the offending input, e.g. `body.name`. Validation entries only.
+                 * @example body.name
+                 */
+                field?: string;
+                /**
+                 * @description What is wrong with that input. Validation entries only.
+                 * @example Too small: expected string to have >=2 characters
+                 */
+                issue?: string;
+            }[];
+            /** @description The info message. */
+            infoMessage: {
+                /**
+                 * @description Unique identifier (UUID).
+                 * @example 0
+                 */
+                id: number;
+                /**
+                 * @description Optional informational text for the user; `null` when there is none.
+                 * @example null
+                 */
+                msg: string | null;
+                /**
+                 * @description The msg type.
+                 * @example Information
+                 * @enum {string}
+                 */
+                msgType: "Information";
+            };
+            /**
+             * @description `true` for every non-2xx response.
+             * @example false
+             */
+            hasError: boolean;
+            /** @description The data. */
+            data: {
+                /**
+                 * @description The state.
+                 * @enum {string}
+                 */
+                state: "valid" | "invalid" | "expired" | "used" | "revoked";
+                /** @description Email address. */
+                email?: string;
+                /** @description The organization name. */
+                organizationName?: string;
+                /** @description The account exists. */
+                accountExists?: boolean;
             };
             /** @description Operation-specific metadata. */
             meta?: {
@@ -49646,28 +50645,10 @@ export interface operations {
                 };
                 content: {
                     /**
-                     * @example {
-                     *       "errorMessage": [
-                     *         {
-                     *           "id": 0,
-                     *           "msg": "Resource not found",
-                     *           "msgType": "Error",
-                     *           "code": "NOT_FOUND",
-                     *           "field": "body.name",
-                     *           "issue": "Too small: expected string to have >=2 characters"
-                     *         }
-                     *       ],
-                     *       "infoMessage": {
-                     *         "id": 0,
-                     *         "msg": null,
-                     *         "msgType": "Information"
-                     *       },
-                     *       "hasError": false,
-                     *       "data": [
-                     *         "bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=",
-                     *         "AAAAAGl2LWV4YW1wbGUtMTI="
-                     *       ]
-                     *     }
+                     * @example [
+                     *       "example",
+                     *       "example"
+                     *     ]
                      */
                     "application/json": components["schemas"]["GetLoginTokenResponse"];
                 };
@@ -49983,6 +50964,252 @@ export interface operations {
             503: components["responses"]["Maintenance"];
         };
     };
+    checkPasswordResetToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "token": "tok_EXAMPLE_0f3a9c2e41b84d6e"
+                 *     }
+                 */
+                "application/json": components["schemas"]["CheckPasswordResetTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "valid": false
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CheckPasswordResetTokenResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "currentPassword": "Correct-Horse-Battery-9",
+                 *       "newPassword": "Correct-Horse-Battery-9"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "revokedSessions": 1
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ChangePasswordResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    listMySessions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": [
+                     *         {
+                     *           "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                     *           "ip": "example ip",
+                     *           "userAgent": "example user agent",
+                     *           "createdAt": "2026-03-02T09:30:00.000Z",
+                     *           "lastSeenAt": "2026-03-02T09:30:00.000Z",
+                     *           "current": false
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ListMySessionsResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    revokeOtherSessions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "revoked": 1
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["RevokeOtherSessionsResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
     acceptInvitation: {
         parameters: {
             query?: never;
@@ -50187,68 +51414,6 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["GetCurrentUserResponse"];
-                };
-            };
-            401: components["responses"]["Unauthenticated"];
-            403: components["responses"]["Forbidden"];
-            429: components["responses"]["RateLimited"];
-            500: components["responses"]["InternalError"];
-            503: components["responses"]["Maintenance"];
-        };
-    };
-    listMySessions: {
-        parameters: {
-            query?: never;
-            header?: {
-                /**
-                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
-                 * @example req_7f3a9c2e41b84d6e
-                 */
-                "X-Request-Id"?: components["parameters"]["RequestId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    "X-Request-Id": components["headers"]["XRequestId"];
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "errorMessage": [
-                     *         {
-                     *           "id": 0,
-                     *           "msg": "Resource not found",
-                     *           "msgType": "Error",
-                     *           "code": "NOT_FOUND",
-                     *           "field": "body.name",
-                     *           "issue": "Too small: expected string to have >=2 characters"
-                     *         }
-                     *       ],
-                     *       "infoMessage": {
-                     *         "id": 0,
-                     *         "msg": null,
-                     *         "msgType": "Information"
-                     *       },
-                     *       "hasError": false,
-                     *       "data": [
-                     *         {
-                     *           "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
-                     *           "ip": "example ip",
-                     *           "userAgent": "example user agent",
-                     *           "createdAt": "2026-03-02T09:30:00.000Z",
-                     *           "lastSeenAt": "2026-03-02T09:30:00.000Z",
-                     *           "current": false
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ListMySessionsResponse"];
                 };
             };
             401: components["responses"]["Unauthenticated"];
@@ -50479,6 +51644,391 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    beginEmailMfaEnrolment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "message": "Done"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["BeginEmailMfaEnrolmentResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    confirmEmailMfaEnrolment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "code": "ACMExx"
+                 *     }
+                 */
+                "application/json": components["schemas"]["ConfirmEmailMfaEnrolmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "recoveryCodes": [
+                     *           "example recovery codes"
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ConfirmEmailMfaEnrolmentResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    sendMfaEmailCode: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "message": "Done"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SendMfaEmailCodeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    getSecurityOverview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "emailVerified": false,
+                     *         "passwordChangedAt": "2026-03-02T09:30:00.000Z",
+                     *         "mfaEnabled": true,
+                     *         "mfaMethods": [
+                     *           "example mfa methods"
+                     *         ],
+                     *         "recoveryCodesRemaining": 1,
+                     *         "mfaRequiredByOrganization": false,
+                     *         "recentEvents": [
+                     *           {
+                     *             "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                     *             "event": "example event",
+                     *             "outcome": "example outcome",
+                     *             "ip": "example ip",
+                     *             "userAgent": "example user agent",
+                     *             "occurredAt": "2026-03-02T09:30:00.000Z"
+                     *           }
+                     *         ]
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["GetSecurityOverviewResponse"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    getAuthConfig: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "selfRegistration": {
+                     *           "enabled": true,
+                     *           "kinds": [
+                     *             "example kinds"
+                     *           ]
+                     *         },
+                     *         "requireEmailVerification": false,
+                     *         "passwordPolicy": {
+                     *           "minLength": 1,
+                     *           "requireClasses": 1,
+                     *           "historyDepth": 1
+                     *         },
+                     *         "mfaMethods": [
+                     *           "example mfa methods"
+                     *         ],
+                     *         "encryptedLogin": false
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["GetAuthConfigResponse"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["Maintenance"];
+        };
+    };
+    previewInvitation: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.
+                 * @example req_7f3a9c2e41b84d6e
+                 */
+                "X-Request-Id"?: components["parameters"]["RequestId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                /**
+                 * @example {
+                 *       "token": "tok_EXAMPLE_0f3a9c2e41b84d6e"
+                 *     }
+                 */
+                "application/json": components["schemas"]["PreviewInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "errorMessage": [
+                     *         {
+                     *           "id": 0,
+                     *           "msg": "Resource not found",
+                     *           "msgType": "Error",
+                     *           "code": "NOT_FOUND",
+                     *           "field": "body.name",
+                     *           "issue": "Too small: expected string to have >=2 characters"
+                     *         }
+                     *       ],
+                     *       "infoMessage": {
+                     *         "id": 0,
+                     *         "msg": null,
+                     *         "msgType": "Information"
+                     *       },
+                     *       "hasError": false,
+                     *       "data": {
+                     *         "state": "valid",
+                     *         "email": "amelia.hart@example.test",
+                     *         "organizationName": "Acme Design Studio",
+                     *         "accountExists": false
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PreviewInvitationResponse"];
+                };
+            };
             422: components["responses"]["ValidationFailed"];
             429: components["responses"]["RateLimited"];
             500: components["responses"]["InternalError"];

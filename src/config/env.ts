@@ -12,7 +12,7 @@ const schema = z.object({
   NEXUS_APP_DB_PASSWORD: z.string().min(8).default('nexus_app_dev_pw'),
   JWT_SECRET: z.string().min(32),
   /** "1:<64hex>,2:<64hex>" for rotation, or a single 64-hex key. */
-  DATA_ENCRYPTION_KEY: z.string().min(64),
+  DATA_ENCRYPTION_KEY: z.string().regex(/^(\d+:)?[0-9a-fA-F]{64}(,\d+:[0-9a-fA-F]{64})*$/, 'must be one 64-hex-char key or "1:<64hex>,2:<64hex>"'),
   CORS_ORIGINS: z.string().default('').transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean)),
   LOG_LEVEL: z.string().default('info'),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),

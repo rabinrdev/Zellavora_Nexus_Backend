@@ -62,6 +62,8 @@ export interface RouteDef<P extends ZodType = ZodType, Q extends ZodType = ZodTy
   scope?: 'tenant' | 'user' | 'platform';
   /** Handler never touches the database: skip the transaction (`ctx.trx` is unusable), so it works when the DB is down. */
   stateless?: boolean;
+  /** Success body is `data` itself, not the JSON envelope (wire contract fixed by an existing client, e.g. `gettoken`). */
+  bare?: boolean;
   params?: P;
   query?: Q;
   body?: B;
@@ -340,7 +342,7 @@ async function handle(def: AnyRoute, svc: Services, req: Request, res: Response)
     res.status(status).send(result.raw.body);
     return;
   }
-  const payload = status === 204 ? undefined : successBody(result.data, { meta: result.meta, message: result.message });
+  const payload = status === 204 ? undefined : def.bare ? result.data : successBody(result.data, { meta: result.meta, message: result.message });
   if (idemId) {
     await withPlatformScope(svc.db, 'idempotency', (t) =>
       t('idempotency_records').where({ id: idemId }).update({

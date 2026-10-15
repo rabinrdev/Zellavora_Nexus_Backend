@@ -6,13 +6,13 @@ let ctx: TestCtx;
 beforeAll(async () => { ctx = await getCtx(); });
 afterAll(async () => { await ctx.close(); });
 
-// same result as CryptoJS.AES.encrypt(value, Base64.parse(key), { iv, CBC, Pkcs7 }).toString()
+// same result as CryptoJS.AES.encrypt(value, Hex.parse(key), { iv: Hex.parse(iv), CBC, Pkcs7 }).toString()
 const enc = (tokenkeys: string[], value: string) => {
   const [key, iv] = tokenkeys as [string, string];
-  const c = createCipheriv('aes-256-cbc', Buffer.from(key, 'base64'), Buffer.from(iv, 'base64'));
+  const c = createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), Buffer.from(iv, 'hex'));
   return Buffer.concat([c.update(value, 'utf8'), c.final()]).toString('base64');
 };
-const getToken = async () => (await ctx.api.get('/api/v1/auth/gettoken')).body.data as string[];
+const getToken = async () => (await ctx.api.get('/api/v1/auth/gettoken')).body as string[];
 
 describe('login with encrypted fields (single /auth/login)', () => {
   it('gettoken returns [key, iv] and login accepts the AuthenticateUser shape', async () => {
@@ -31,7 +31,7 @@ describe('login with encrypted fields (single /auth/login)', () => {
     const bad = await ctx.api.post('/api/v1/auth/login')
       .send({ userLoginId: enc(other, 'x@example.test'), password: enc(other, 'x'), tokenkeys: t });
     expect(bad.status).toBe(422);
-    const forged = [(t[0]![0] === 'A' ? 'B' : 'A') + t[0]!.slice(1), t[1]!];
+    const forged = [(t[0]![0] === 'a' ? 'b' : 'a') + t[0]!.slice(1), t[1]!];
     const r = await ctx.api.post('/api/v1/auth/login')
       .send({ userLoginId: enc(forged, 'x@example.test'), password: enc(forged, 'x'), tokenkeys: forged });
     expect(r.status).toBe(422);

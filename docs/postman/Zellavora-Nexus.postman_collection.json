@@ -217,7 +217,7 @@
             "auth": null,
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userLoginId\": \"U17tXqkiF0JMSzWMpNXPPg==\",\n  \"password\": \"yHbUckhfMTLcSmJwgYQzMg==\",\n  \"tokenkeys\": [\n    \"bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=\",\n    \"AAAAAGl2LWV4YW1wbGUtMTI=\"\n  ],\n  \"clientCode\": \"DC\"\n}",
+              "raw": "{\n  \"userLoginId\": \"U17tXqkiF0JMSzWMpNXPPg==\",\n  \"password\": \"yHbUckhfMTLcSmJwgYQzMg==\",\n  \"tokenkeys\": [\n    \"3f9a6c1e5b7d2480a1c3e5f70912b4d6e8a0c2e4f6081a3c5e7092b4d6f8a1c3\",\n    \"0000000069766578616d706c65313233\"\n  ],\n  \"clientCode\": \"DC\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -250,7 +250,7 @@
           "request": {
             "name": "Get the [key, iv] token for an encrypted login",
             "description": {
-              "content": "Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "content": "Step 1 of the encrypted sign-in. **The body is the bare JSON array, not the usual envelope** (fixed wire contract for existing clients). It is an array of two hex strings: `[key, iv]` (AES-256 key = 64 hex chars, 16-byte IV = 32 hex chars; parse both as hex), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -555,6 +555,202 @@
           }
         },
         {
+          "name": "Check that a password reset token is still valid",
+          "request": {
+            "name": "Check that a password reset token is still valid",
+            "description": {
+              "content": "Returns `{ valid }` for a reset token so the UI can show the form or an expired-link page before the user types a password. Does not consume the token.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password",
+                "validate"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"tok_EXAMPLE_0f3a9c2e41b84d6e\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Change my password (current password required)",
+          "request": {
+            "name": "Change my password (current password required)",
+            "description": {
+              "content": "Changes the signed-in user's password. Requires the current password (`422` `currentPassword` when wrong) and the new one must satisfy the password policy and not be a recent password. All **other** sessions are revoked; the caller stays signed in. A confirmation email is sent.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Correct-Horse-Battery-9\",\n  \"newPassword\": \"Correct-Horse-Battery-9\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Revoke all my other sessions",
+          "request": {
+            "name": "Revoke all my other sessions",
+            "description": {
+              "content": "Revokes every session of the user except the one making the request. Returns the number revoked.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "DELETE"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "List my active sessions",
+          "request": {
+            "name": "List my active sessions",
+            "description": {
+              "content": "Active sessions of the user; `current` marks the one making the request.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
           "name": "Accept an organization invitation",
           "request": {
             "name": "Accept an organization invitation",
@@ -694,48 +890,6 @@
                 "v1",
                 "auth",
                 "me"
-              ],
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "query": [],
-              "variable": [],
-              "raw": "{{baseUrl}}"
-            },
-            "header": [
-              {
-                "disabled": false,
-                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
-                "key": "X-Request-Id",
-                "value": "req_7f3a9c2e41b84d6e"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "method": "GET"
-          },
-          "response": [],
-          "event": [],
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          }
-        },
-        {
-          "name": "List my active sessions",
-          "request": {
-            "name": "List my active sessions",
-            "description": {
-              "content": "Active sessions of the user; `current` marks the one making the request.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
-              "type": "text/plain"
-            },
-            "url": {
-              "path": [
-                "api",
-                "v1",
-                "auth",
-                "sessions"
               ],
               "host": [
                 "{{baseUrl}}"
@@ -915,11 +1069,11 @@
           }
         },
         {
-          "name": "Verify a TOTP or recovery code for the session",
+          "name": "Verify a TOTP or emailed code for the session",
           "request": {
-            "name": "Verify a TOTP or recovery code for the session",
+            "name": "Verify a TOTP or emailed code for the session",
             "description": {
-              "content": "Completes MFA for a session that must verify; returns `{ verified }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "content": "Completes MFA (TOTP or emailed code) for a session that must verify; returns `{ verified }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
               "type": "text/plain"
             },
             "url": {
@@ -957,6 +1111,293 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"code\": \"ACMExx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Begin email code enrolment",
+          "request": {
+            "name": "Begin email code enrolment",
+            "description": {
+              "content": "Emails a 6-digit code to the account address to enrol email-code MFA. Confirm it with `confirmEmailMfaEnrolment`. Codes expire after 10 minutes; a new one is sent at most once a minute.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "mfa",
+                "email",
+                "setup"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Confirm email code enrolment",
+          "request": {
+            "name": "Confirm email code enrolment",
+            "description": {
+              "content": "Confirms the emailed code and activates email-code MFA. Returns one-time recovery codes only if the user has none unused yet.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "mfa",
+                "email",
+                "confirm"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"ACMExx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Email me a verification code",
+          "request": {
+            "name": "Email me a verification code",
+            "description": {
+              "content": "Emails a fresh sign-in code to a user with email-code MFA, to verify a session, disable MFA or regenerate recovery codes. At the login itself the code is sent automatically when `mfaCode` is missing; `details` then contains `{ field: \"mfaMethod\", issue: \"email_otp\" }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "mfa",
+                "email",
+                "send"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Security overview of my account",
+          "request": {
+            "name": "Security overview of my account",
+            "description": {
+              "content": "Security posture of the signed-in user: email verification, password age, MFA methods, unused recovery codes, whether the organization requires MFA, and the last 10 security events. Works while MFA enrolment is pending.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "security"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Public sign-in configuration",
+          "request": {
+            "name": "Public sign-in configuration",
+            "description": {
+              "content": "Public sign-in configuration for the login and sign-up screens: password policy, registration kinds, available MFA methods. No authentication.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "config"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "name": "Preview an organization invitation",
+          "request": {
+            "name": "Preview an organization invitation",
+            "description": {
+              "content": "Read-only look at an invitation token: `state` (`valid`, `invalid`, `expired`, `used`, `revoked`) and, when valid, the invited email, organization name and whether an account already exists (sign in vs set a password). The token is not consumed.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `invitation` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+              "type": "text/plain"
+            },
+            "url": {
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "invitations",
+                "preview"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [],
+              "raw": "{{baseUrl}}"
+            },
+            "header": [
+              {
+                "disabled": false,
+                "description": "Optional correlation id (8-128 chars of `[A-Za-z0-9._-]`). Echoed in the response and in logs/audit; generated when absent.",
+                "key": "X-Request-Id",
+                "value": "req_7f3a9c2e41b84d6e"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "auth": null,
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"tok_EXAMPLE_0f3a9c2e41b84d6e\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

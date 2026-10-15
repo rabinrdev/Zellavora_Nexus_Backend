@@ -293,6 +293,13 @@ export function buildOpenApi(opts: BuildOptions) {
         }
       }
       const data = (r.response as z.ZodType | undefined) ?? z.record(z.string(), z.unknown());
+      if (r.bare) {
+        responses[status] = {
+          description: SUCCESS_TEXT[status] ?? 'Success',
+          content: { 'application/json': { schema: registerOnce(`${st}Response`, data.openapi({ description: `Success response of \`${r.operationId}\` (bare JSON, not the envelope).` })) } },
+        };
+        continue;
+      }
       const paginatedList = kindOf(r) === 'list';
       const listLike = paginatedList || r.collection === true;
       const name = r.responseName ?? st;

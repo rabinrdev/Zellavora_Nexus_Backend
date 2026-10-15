@@ -102,7 +102,7 @@ defineRoute({
 
 defineRoute({
   method: 'get', path: '/auth/gettoken', module: MODULE, summary: 'Get the [key, iv] token for an encrypted login',
-  access: 'public', stateless: true, rateLimit: 'auth', response: loginTokenResponse,
+  access: 'public', stateless: true, bare: true, rateLimit: 'auth', response: loginTokenResponse,
   async handler(c) {
     return { status: 200, data: issueLoginToken(c.svc.keys, c.svc.now()) };
   },
@@ -152,6 +152,35 @@ defineRoute({
   async handler(c) {
     await svc.resetPassword(c.svc, c.body.token, c.body.newPassword, meta(c));
     return { status: 200, data: { message: 'Password updated' } };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/reset-password/validate', module: MODULE, summary: 'Check that a password reset token is still valid',
+  access: 'public', rateLimit: 'auth', body: z.object({ token: tokenField }), response: z.object({ valid: z.boolean() }),
+  async handler(c) {
+    return { status: 200, data: { valid: await svc.validateResetToken(c.svc, c.body.token) } };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/change-password', module: MODULE, summary: 'Change my password (current password required)',
+  access: 'authenticated', scope: 'user', rateLimit: 'auth',
+  body: z.object({ currentPassword: z.string().min(1).max(1024), newPassword: password }),
+  response: z.object({ revokedSessions: z.number() }),
+  async handler(c) {
+    await limiter(c).consume('auth', `pw:${c.auth!.userId}`);
+    return { status: 200, data: await svc.changePassword(c.svc, c.auth!.userId, c.auth!.sessionId, c.body.currentPassword, c.body.newPassword, meta(c)) };
+  },
+});
+
+defineRoute({
+  method: 'delete', path: '/auth/sessions', module: MODULE, summary: 'Revoke all my other sessions',
+  access: 'authenticated', scope: 'user', response: z.object({ revoked: z.number() }),
+  async handler(c) {
+    const revoked = await c.trx('sessions').where({ user_id: c.auth!.userId }).whereNull('revoked_at')
+      .whereNot({ id: c.auth!.sessionId }).update({ revoked_at: c.svc.now(), revoked_reason: 'revoked_by_user' });
+    return { status: 200, data: { revoked } };
   },
 });
 
@@ -257,16 +286,81 @@ defineRoute({
 });
 
 defineRoute({
-  method: 'post', path: '/auth/mfa/verify', module: MODULE, summary: 'Verify a TOTP or recovery code for the session',
+  method: 'post', path: '/auth/mfa/verify', module: MODULE, summary: 'Verify a TOTP or emailed code for the session',
   access: 'authenticated', scope: 'user', allowPendingMfa: true, rateLimit: 'mfa', body: z.object({ code: mfaCode }),
   response: z.object({ verified: z.boolean() }),
   async handler(c) {
-    const f = await c.trx('mfa_factors').where({ user_id: c.auth!.userId }).whereNotNull('confirmed_at').first();
-    const { decrypt } = await import('../../platform/crypto.js');
-    const { verifyTotp } = await import('../../platform/auth/totp.js');
-    const ok = !!f && verifyTotp(decrypt(c.svc.keys, f.secret_encrypted), c.body.code);
-    if (ok) await c.trx('sessions').where({ id: c.auth!.sessionId }).update({ mfa_verified: true, pending_mfa: false });
-    return { status: 200, data: { verified: ok } };
+    return { status: 200, data: { verified: await svc.mfaVerifyCode(c.svc, c.auth!.userId, c.auth!.sessionId, c.body.code) } };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/mfa/email/setup', module: MODULE, summary: 'Begin email code enrolment',
+  access: 'authenticated', scope: 'user', allowPendingMfa: true, rateLimit: 'mfa', response: message,
+  async handler(c) {
+    await svc.mfaEmailSetup(c.svc, c.auth!.userId);
+    return { status: 200, data: { message: 'A verification code was sent to your email address.' } };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/mfa/email/confirm', module: MODULE, summary: 'Confirm email code enrolment',
+  access: 'authenticated', scope: 'user', allowPendingMfa: true, rateLimit: 'mfa', body: z.object({ code: mfaCode }),
+  response: z.object({ recoveryCodes: z.array(z.string()) }),
+  async handler(c) {
+    const codes = await svc.mfaEmailConfirm(c.svc, c.auth!.userId, c.auth!.sessionId, c.body.code, meta(c));
+    return { status: 200, data: { recoveryCodes: codes } };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/mfa/email/send', module: MODULE, summary: 'Email me a verification code',
+  access: 'authenticated', scope: 'user', allowPendingMfa: true, rateLimit: 'mfa', response: message,
+  async handler(c) {
+    await svc.mfaEmailSend(c.svc, c.auth!.userId);
+    return { status: 200, data: { message: 'A verification code was sent to your email address.' } };
+  },
+});
+
+defineRoute({
+  method: 'get', path: '/auth/security', module: MODULE, summary: 'Security overview of my account',
+  access: 'authenticated', scope: 'user', allowPendingMfa: true, allowSuspendedTenant: true,
+  response: z.object({
+    emailVerified: z.boolean(), passwordChangedAt: z.string().nullable(), mfaEnabled: z.boolean(), mfaMethods: z.array(z.string()),
+    recoveryCodesRemaining: z.number(), mfaRequiredByOrganization: z.boolean(),
+    recentEvents: z.array(z.object({
+      id: z.string(), event: z.string(), outcome: z.string(), ip: z.string().nullable(), userAgent: z.string().nullable(), occurredAt: z.string(),
+    })),
+  }),
+  async handler(c) {
+    return { status: 200, data: await svc.securityOverview(c.svc, c.auth!.userId, c.auth!.organizationId) };
+  },
+});
+
+defineRoute({
+  method: 'get', path: '/auth/config', module: MODULE, summary: 'Public sign-in configuration',
+  access: 'public', rateLimit: 'auth',
+  response: z.object({
+    selfRegistration: z.object({ enabled: z.boolean(), kinds: z.array(z.string()) }),
+    requireEmailVerification: z.boolean(),
+    passwordPolicy: z.object({ minLength: z.number(), requireClasses: z.number(), historyDepth: z.number() }),
+    mfaMethods: z.array(z.string()),
+    encryptedLogin: z.boolean(),
+  }),
+  async handler(c) {
+    return { status: 200, data: await svc.publicConfig(c.svc) };
+  },
+});
+
+defineRoute({
+  method: 'post', path: '/auth/invitations/preview', module: MODULE, summary: 'Preview an organization invitation',
+  access: 'public', rateLimit: 'invitation', body: z.object({ token: tokenField }),
+  response: z.object({
+    state: z.enum(['valid', 'invalid', 'expired', 'used', 'revoked']),
+    email: z.string().optional(), organizationName: z.string().optional(), accountExists: z.boolean().optional(),
+  }),
+  async handler(c) {
+    return { status: 200, data: await svc.previewInvitation(c.svc, c.body.token) };
   },
 });
 

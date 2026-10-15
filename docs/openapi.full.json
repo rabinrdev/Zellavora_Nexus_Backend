@@ -828,8 +828,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "minLength": 16,
-              "maxLength": 64
+              "minLength": 32,
+              "maxLength": 64,
+              "pattern": "^[0-9a-fA-F]+$"
             },
             "description": "The tokenkeys."
           },
@@ -1039,129 +1040,13 @@
         "description": "Success response of `loginWithPassword`."
       },
       "GetLoginTokenResponse": {
-        "type": "object",
-        "properties": {
-          "errorMessage": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "integer",
-                  "description": "Message id (0 for API errors).",
-                  "example": 0
-                },
-                "msg": {
-                  "type": "string",
-                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
-                  "example": "Resource not found"
-                },
-                "msgType": {
-                  "type": "string",
-                  "enum": [
-                    "Error"
-                  ],
-                  "example": "Error",
-                  "description": "The msg type."
-                },
-                "code": {
-                  "type": "string",
-                  "enum": [
-                    "UNAUTHENTICATED",
-                    "FORBIDDEN",
-                    "TENANT_SUSPENDED",
-                    "NOT_FOUND",
-                    "CONFLICT",
-                    "PRECONDITION_FAILED",
-                    "VALIDATION_FAILED",
-                    "IDEMPOTENCY_KEY_REUSED",
-                    "PLAN_LIMIT_EXCEEDED",
-                    "RATE_LIMITED",
-                    "MAINTENANCE",
-                    "INTERNAL"
-                  ],
-                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
-                  "example": "NOT_FOUND"
-                },
-                "field": {
-                  "type": "string",
-                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
-                  "example": "body.name"
-                },
-                "issue": {
-                  "type": "string",
-                  "description": "What is wrong with that input. Validation entries only.",
-                  "example": "Too small: expected string to have >=2 characters"
-                }
-              },
-              "required": [
-                "id",
-                "msg",
-                "msgType",
-                "code"
-              ]
-            },
-            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
-          },
-          "infoMessage": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer",
-                "example": 0,
-                "description": "Unique identifier (UUID)."
-              },
-              "msg": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Optional informational text for the user; `null` when there is none.",
-                "example": null
-              },
-              "msgType": {
-                "type": "string",
-                "enum": [
-                  "Information"
-                ],
-                "example": "Information",
-                "description": "The msg type."
-              }
-            },
-            "required": [
-              "id",
-              "msg",
-              "msgType"
-            ],
-            "description": "The info message."
-          },
-          "hasError": {
-            "type": "boolean",
-            "description": "`true` for every non-2xx response.",
-            "example": false
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 2,
-            "maxItems": 2,
-            "description": "The data."
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": {},
-            "description": "Operation-specific metadata."
-          }
+        "type": "array",
+        "items": {
+          "type": "string"
         },
-        "required": [
-          "errorMessage",
-          "infoMessage",
-          "hasError",
-          "data"
-        ],
-        "description": "Success response of `getLoginToken`."
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "Success response of `getLoginToken` (bare JSON, not the envelope)."
       },
       "RefreshAccessTokenRequest": {
         "type": "object",
@@ -1887,6 +1772,430 @@
           "data"
         ],
         "description": "Success response of `resetPassword`."
+      },
+      "CheckPasswordResetTokenRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 512,
+            "description": "Opaque token issued by the API."
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "description": "Request body of `checkPasswordResetToken`."
+      },
+      "CheckPasswordResetTokenResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "valid": {
+                "type": "boolean",
+                "description": "The valid."
+              }
+            },
+            "required": [
+              "valid"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `checkPasswordResetToken`."
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "The user's current password (re-confirmation)."
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "The new password; must satisfy the organization password policy."
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "description": "Request body of `changePassword`."
+      },
+      "ChangePasswordResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "revokedSessions": {
+                "type": "number",
+                "description": "The revoked sessions."
+              }
+            },
+            "required": [
+              "revokedSessions"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `changePassword`."
+      },
+      "RevokeOtherSessionsResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "revoked": {
+                "type": "number",
+                "description": "The revoked."
+              }
+            },
+            "required": [
+              "revoked"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `revokeOtherSessions`."
       },
       "AcceptInvitationRequest": {
         "type": "object",
@@ -3023,6 +3332,970 @@
           "data"
         ],
         "description": "Success response of `verifyMfaCode`."
+      },
+      "BeginEmailMfaEnrolmentResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "description": "Human-readable message."
+              }
+            },
+            "required": [
+              "message"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `beginEmailMfaEnrolment`."
+      },
+      "ConfirmEmailMfaEnrolmentRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 64,
+            "description": "Short code (TOTP or recovery code, or a business code)."
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "Request body of `confirmEmailMfaEnrolment`."
+      },
+      "ConfirmEmailMfaEnrolmentResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "recoveryCodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The recovery codes."
+              }
+            },
+            "required": [
+              "recoveryCodes"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `confirmEmailMfaEnrolment`."
+      },
+      "SendMfaEmailCodeResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "description": "Human-readable message."
+              }
+            },
+            "required": [
+              "message"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `sendMfaEmailCode`."
+      },
+      "GetSecurityOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "emailVerified": {
+                "type": "boolean",
+                "description": "The email verified."
+              },
+              "passwordChangedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "When password changed happened (ISO-8601 UTC)."
+              },
+              "mfaEnabled": {
+                "type": "boolean",
+                "description": "The mfa enabled."
+              },
+              "mfaMethods": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The mfa methods."
+              },
+              "recoveryCodesRemaining": {
+                "type": "number",
+                "description": "The recovery codes remaining."
+              },
+              "mfaRequiredByOrganization": {
+                "type": "boolean",
+                "description": "The mfa required by organization."
+              },
+              "recentEvents": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Unique identifier (UUID)."
+                    },
+                    "event": {
+                      "type": "string",
+                      "description": "The event."
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "description": "The outcome."
+                    },
+                    "ip": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The ip."
+                    },
+                    "userAgent": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The user agent."
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "description": "When occurred happened (ISO-8601 UTC)."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "event",
+                    "outcome",
+                    "ip",
+                    "userAgent",
+                    "occurredAt"
+                  ]
+                },
+                "description": "The recent events."
+              }
+            },
+            "required": [
+              "emailVerified",
+              "passwordChangedAt",
+              "mfaEnabled",
+              "mfaMethods",
+              "recoveryCodesRemaining",
+              "mfaRequiredByOrganization",
+              "recentEvents"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `getSecurityOverview`."
+      },
+      "GetAuthConfigResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "selfRegistration": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "The enabled."
+                  },
+                  "kinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "The kinds."
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "kinds"
+                ],
+                "description": "The self registration."
+              },
+              "requireEmailVerification": {
+                "type": "boolean",
+                "description": "The require email verification."
+              },
+              "passwordPolicy": {
+                "type": "object",
+                "properties": {
+                  "minLength": {
+                    "type": "number",
+                    "description": "The min length."
+                  },
+                  "requireClasses": {
+                    "type": "number",
+                    "description": "The require classes."
+                  },
+                  "historyDepth": {
+                    "type": "number",
+                    "description": "The history depth."
+                  }
+                },
+                "required": [
+                  "minLength",
+                  "requireClasses",
+                  "historyDepth"
+                ],
+                "description": "The password policy."
+              },
+              "mfaMethods": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The mfa methods."
+              },
+              "encryptedLogin": {
+                "type": "boolean",
+                "description": "The encrypted login."
+              }
+            },
+            "required": [
+              "selfRegistration",
+              "requireEmailVerification",
+              "passwordPolicy",
+              "mfaMethods",
+              "encryptedLogin"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `getAuthConfig`."
+      },
+      "PreviewInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 512,
+            "description": "Opaque token issued by the API."
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "description": "Request body of `previewInvitation`."
+      },
+      "PreviewInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "errorMessage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "description": "Message id (0 for API errors).",
+                  "example": 0
+                },
+                "msg": {
+                  "type": "string",
+                  "description": "Human-readable text, safe to show to end users. Validation entries read `field: issue`.",
+                  "example": "Resource not found"
+                },
+                "msgType": {
+                  "type": "string",
+                  "enum": [
+                    "Error"
+                  ],
+                  "example": "Error",
+                  "description": "The msg type."
+                },
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "TENANT_SUSPENDED",
+                    "NOT_FOUND",
+                    "CONFLICT",
+                    "PRECONDITION_FAILED",
+                    "VALIDATION_FAILED",
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "PLAN_LIMIT_EXCEEDED",
+                    "RATE_LIMITED",
+                    "MAINTENANCE",
+                    "INTERNAL"
+                  ],
+                  "description": "Machine-readable error code.\n- `UNAUTHENTICATED` (401): Missing, expired or revoked credentials. **UI:** Try POST /auth/refresh once; if that fails send the user to the sign-in screen.\n- `FORBIDDEN` (403): Authenticated but not allowed (missing permission, read-only support session, no active organization). **UI:** Hide the action using GET /me/permissions; show a \"you do not have access\" message.\n- `TENANT_SUSPENDED` (403): The active organization is suspended. **UI:** Show a suspended-organization screen; only platform admins can reactivate.\n- `NOT_FOUND` (404): Resource does not exist, belongs to another organization, or its module is disabled. **UI:** Show a not-found state. Never retry.\n- `CONFLICT` (409): Uniqueness or state conflict, or a request with the same Idempotency-Key is still running. **UI:** Show the message; for in-flight idempotency retry after a short delay with the same key.\n- `PRECONDITION_FAILED` (412): If-Match / rowVersion is missing or stale: someone else changed the record. **UI:** Reload the record, show a merge/overwrite prompt, resend with the new rowVersion.\n- `VALIDATION_FAILED` (422): Body, query or path parameters failed validation; `details` lists each field. **UI:** Map `details[].field` to form fields and show `details[].issue` inline.\n- `IDEMPOTENCY_KEY_REUSED` (422): The Idempotency-Key was already used with a different request. **UI:** Generate a new key per distinct operation.\n- `PLAN_LIMIT_EXCEEDED` (402): The subscription plan does not include this feature or its quota is exhausted. **UI:** Show an upgrade prompt using GET /entitlements/{entitlementKey}.\n- `RATE_LIMITED` (429): Too many requests; `Retry-After` gives the seconds to wait. **UI:** Back off for Retry-After seconds, then retry.\n- `MAINTENANCE` (503): The service is in maintenance mode; `Retry-After` is set. **UI:** Show a maintenance banner and poll GET /health/ready.\n- `INTERNAL` (500): Unexpected server error. `requestId` identifies it in the logs. **UI:** Show a generic error with the requestId so support can trace it.",
+                  "example": "NOT_FOUND"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Dotted path of the offending input, e.g. `body.name`. Validation entries only.",
+                  "example": "body.name"
+                },
+                "issue": {
+                  "type": "string",
+                  "description": "What is wrong with that input. Validation entries only.",
+                  "example": "Too small: expected string to have >=2 characters"
+                }
+              },
+              "required": [
+                "id",
+                "msg",
+                "msgType",
+                "code"
+              ]
+            },
+            "description": "Empty on success. On errors the first entry is the summary, followed by one entry per invalid field."
+          },
+          "infoMessage": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 0,
+                "description": "Unique identifier (UUID)."
+              },
+              "msg": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Optional informational text for the user; `null` when there is none.",
+                "example": null
+              },
+              "msgType": {
+                "type": "string",
+                "enum": [
+                  "Information"
+                ],
+                "example": "Information",
+                "description": "The msg type."
+              }
+            },
+            "required": [
+              "id",
+              "msg",
+              "msgType"
+            ],
+            "description": "The info message."
+          },
+          "hasError": {
+            "type": "boolean",
+            "description": "`true` for every non-2xx response.",
+            "example": false
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "valid",
+                  "invalid",
+                  "expired",
+                  "used",
+                  "revoked"
+                ],
+                "description": "The state."
+              },
+              "email": {
+                "type": "string",
+                "description": "Email address."
+              },
+              "organizationName": {
+                "type": "string",
+                "description": "The organization name."
+              },
+              "accountExists": {
+                "type": "boolean",
+                "description": "The account exists."
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "description": "The data."
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Operation-specific metadata."
+          }
+        },
+        "required": [
+          "errorMessage",
+          "infoMessage",
+          "hasError",
+          "data"
+        ],
+        "description": "Success response of `previewInvitation`."
       },
       "DisableMfaRequest": {
         "type": "object",
@@ -66341,8 +67614,8 @@
                     "userLoginId": "U17tXqkiF0JMSzWMpNXPPg==",
                     "password": "yHbUckhfMTLcSmJwgYQzMg==",
                     "tokenkeys": [
-                      "bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=",
-                      "AAAAAGl2LWV4YW1wbGUtMTI="
+                      "3f9a6c1e5b7d2480a1c3e5f70912b4d6e8a0c2e4f6081a3c5e7092b4d6f8a1c3",
+                      "0000000069766578616d706c65313233"
                     ],
                     "clientCode": "DC"
                   }
@@ -66449,7 +67722,7 @@
       "get": {
         "operationId": "getLoginToken",
         "summary": "Get the [key, iv] token for an encrypted login",
-        "description": "Step 1 of the encrypted sign-in. Returns the token as an array of two base64 strings: `[key, iv]` (AES-256 key, 16-byte IV), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "description": "Step 1 of the encrypted sign-in. **The body is the bare JSON array, not the usual envelope** (fixed wire contract for existing clients). It is an array of two hex strings: `[key, iv]` (AES-256 key = 64 hex chars, 16-byte IV = 32 hex chars; parse both as hex), valid for 5 minutes. Stateless: the key is derived from the IV with a server secret and verified at login. Rate limited per IP.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
         "tags": [
           "Authentication"
         ],
@@ -66461,28 +67734,10 @@
                 "schema": {
                   "$ref": "#/components/schemas/GetLoginTokenResponse"
                 },
-                "example": {
-                  "errorMessage": [
-                    {
-                      "id": 0,
-                      "msg": "Resource not found",
-                      "msgType": "Error",
-                      "code": "NOT_FOUND",
-                      "field": "body.name",
-                      "issue": "Too small: expected string to have >=2 characters"
-                    }
-                  ],
-                  "infoMessage": {
-                    "id": 0,
-                    "msg": null,
-                    "msgType": "Information"
-                  },
-                  "hasError": false,
-                  "data": [
-                    "bXktMzItYnl0ZS1iYXNlNjQta2V5LWV4YW1wbGUtMTIzNDU=",
-                    "AAAAAGl2LWV4YW1wbGUtMTI="
-                  ]
-                }
+                "example": [
+                  "example",
+                  "example"
+                ]
               }
             },
             "headers": {
@@ -66938,6 +68193,350 @@
         "x-release": "MVP"
       }
     },
+    "/api/v1/auth/reset-password/validate": {
+      "post": {
+        "operationId": "checkPasswordResetToken",
+        "summary": "Check that a password reset token is still valid",
+        "description": "Returns `{ valid }` for a reset token so the UI can show the form or an expired-link page before the user types a password. Does not consume the token.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckPasswordResetTokenRequest"
+              },
+              "example": {
+                "token": "tok_EXAMPLE_0f3a9c2e41b84d6e"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckPasswordResetTokenResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "valid": false
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "auth",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "changePassword",
+        "summary": "Change my password (current password required)",
+        "description": "Changes the signed-in user's password. Requires the current password (`422` `currentPassword` when wrong) and the new one must satisfy the password policy and not be a recent password. All **other** sessions are revoked; the caller stays signed in. A confirmation email is sent.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              },
+              "example": {
+                "currentPassword": "Correct-Horse-Battery-9",
+                "newPassword": "Correct-Horse-Battery-9"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangePasswordResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "revokedSessions": 1
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "auth",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "delete": {
+        "operationId": "revokeOtherSessions",
+        "summary": "Revoke all my other sessions",
+        "description": "Revokes every session of the user except the one making the request. Returns the number revoked.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeOtherSessionsResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "revoked": 1
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      },
+      "get": {
+        "operationId": "listMySessions",
+        "summary": "List my active sessions",
+        "description": "Active sessions of the user; `current` marks the one making the request.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListMySessionsResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": [
+                    {
+                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                      "ip": "example ip",
+                      "userAgent": "example user agent",
+                      "createdAt": "2026-03-02T09:30:00.000Z",
+                      "lastSeenAt": "2026-03-02T09:30:00.000Z",
+                      "current": false
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      }
+    },
     "/api/v1/auth/invitations/accept": {
       "post": {
         "operationId": "acceptInvitation",
@@ -67188,92 +68787,6 @@
                     ],
                     "sessionId": "4c9d6a52-5d1e-4b0c-9a4e-1f2d3c4b5a55"
                   }
-                }
-              }
-            },
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthenticated"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "429": {
-            "$ref": "#/components/responses/RateLimited"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalError"
-          },
-          "503": {
-            "$ref": "#/components/responses/Maintenance"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/RequestId"
-          }
-        ],
-        "x-required-permission": null,
-        "x-tenant-scoped": false,
-        "x-audited": false,
-        "x-idempotent": false,
-        "x-rate-limit": "default",
-        "x-release": "MVP"
-      }
-    },
-    "/api/v1/auth/sessions": {
-      "get": {
-        "operationId": "listMySessions",
-        "summary": "List my active sessions",
-        "description": "Active sessions of the user; `current` marks the one making the request.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
-        "tags": [
-          "Authentication"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListMySessionsResponse"
-                },
-                "example": {
-                  "errorMessage": [
-                    {
-                      "id": 0,
-                      "msg": "Resource not found",
-                      "msgType": "Error",
-                      "code": "NOT_FOUND",
-                      "field": "body.name",
-                      "issue": "Too small: expected string to have >=2 characters"
-                    }
-                  ],
-                  "infoMessage": {
-                    "id": 0,
-                    "msg": null,
-                    "msgType": "Information"
-                  },
-                  "hasError": false,
-                  "data": [
-                    {
-                      "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
-                      "ip": "example ip",
-                      "userAgent": "example user agent",
-                      "createdAt": "2026-03-02T09:30:00.000Z",
-                      "lastSeenAt": "2026-03-02T09:30:00.000Z",
-                      "current": false
-                    }
-                  ]
                 }
               }
             },
@@ -67570,8 +69083,8 @@
     "/api/v1/auth/mfa/verify": {
       "post": {
         "operationId": "verifyMfaCode",
-        "summary": "Verify a TOTP or recovery code for the session",
-        "description": "Completes MFA for a session that must verify; returns `{ verified }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "summary": "Verify a TOTP or emailed code for the session",
+        "description": "Completes MFA (TOTP or emailed code) for a session that must verify; returns `{ verified }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
         "tags": [
           "Authentication"
         ],
@@ -67659,6 +69172,535 @@
         "x-audited": false,
         "x-idempotent": false,
         "x-rate-limit": "mfa",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/mfa/email/setup": {
+      "post": {
+        "operationId": "beginEmailMfaEnrolment",
+        "summary": "Begin email code enrolment",
+        "description": "Emails a 6-digit code to the account address to enrol email-code MFA. Confirm it with `confirmEmailMfaEnrolment`. Codes expire after 10 minutes; a new one is sent at most once a minute.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeginEmailMfaEnrolmentResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "message": "Done"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "mfa",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/mfa/email/confirm": {
+      "post": {
+        "operationId": "confirmEmailMfaEnrolment",
+        "summary": "Confirm email code enrolment",
+        "description": "Confirms the emailed code and activates email-code MFA. Returns one-time recovery codes only if the user has none unused yet.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailMfaEnrolmentRequest"
+              },
+              "example": {
+                "code": "ACMExx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmEmailMfaEnrolmentResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "recoveryCodes": [
+                      "example recovery codes"
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "mfa",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/mfa/email/send": {
+      "post": {
+        "operationId": "sendMfaEmailCode",
+        "summary": "Email me a verification code",
+        "description": "Emails a fresh sign-in code to a user with email-code MFA, to verify a session, disable MFA or regenerate recovery codes. At the login itself the code is sent automatically when `mfaCode` is missing; `details` then contains `{ field: \"mfaMethod\", issue: \"email_otp\" }`.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `mfa` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendMfaEmailCodeResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "message": "Done"
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "mfa",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/security": {
+      "get": {
+        "operationId": "getSecurityOverview",
+        "summary": "Security overview of my account",
+        "description": "Security posture of the signed-in user: email verification, password age, MFA methods, unused recovery codes, whether the organization requires MFA, and the last 10 security events. Works while MFA enrolment is pending.\n\n| | |\n|---|---|\n| **Authentication** | Bearer access token |\n| **Required permission** | Any signed-in user |\n| **Tenant scoped** | No — acts on the signed-in user |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `default` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSecurityOverviewResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "emailVerified": false,
+                    "passwordChangedAt": "2026-03-02T09:30:00.000Z",
+                    "mfaEnabled": true,
+                    "mfaMethods": [
+                      "example mfa methods"
+                    ],
+                    "recoveryCodesRemaining": 1,
+                    "mfaRequiredByOrganization": false,
+                    "recentEvents": [
+                      {
+                        "id": "7a1b6a52-5d1e-4b0c-9a4e-1f2d3c4b5a22",
+                        "event": "example event",
+                        "outcome": "example outcome",
+                        "ip": "example ip",
+                        "userAgent": "example user agent",
+                        "occurredAt": "2026-03-02T09:30:00.000Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthenticated"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "default",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/config": {
+      "get": {
+        "operationId": "getAuthConfig",
+        "summary": "Public sign-in configuration",
+        "description": "Public sign-in configuration for the login and sign-up screens: password policy, registration kinds, available MFA methods. No authentication.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `auth` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAuthConfigResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "selfRegistration": {
+                      "enabled": true,
+                      "kinds": [
+                        "example kinds"
+                      ]
+                    },
+                    "requireEmailVerification": false,
+                    "passwordPolicy": {
+                      "minLength": 1,
+                      "requireClasses": 1,
+                      "historyDepth": 1
+                    },
+                    "mfaMethods": [
+                      "example mfa methods"
+                    ],
+                    "encryptedLogin": false
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "auth",
+        "x-release": "MVP"
+      }
+    },
+    "/api/v1/auth/invitations/preview": {
+      "post": {
+        "operationId": "previewInvitation",
+        "summary": "Preview an organization invitation",
+        "description": "Read-only look at an invitation token: `state` (`valid`, `invalid`, `expired`, `used`, `revoked`) and, when valid, the invited email, organization name and whether an account already exists (sign in vs set a password). The token is not consumed.\n\n| | |\n|---|---|\n| **Authentication** | None (public) |\n| **Required permission** | None |\n| **Tenant scoped** | No — platform level |\n| **Idempotency** | Not applicable |\n| **Rate limit** | `invitation` bucket (429 + `Retry-After`) |\n\n_Module: Authentication · MVP_",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewInvitationRequest"
+              },
+              "example": {
+                "token": "tok_EXAMPLE_0f3a9c2e41b84d6e"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewInvitationResponse"
+                },
+                "example": {
+                  "errorMessage": [
+                    {
+                      "id": 0,
+                      "msg": "Resource not found",
+                      "msgType": "Error",
+                      "code": "NOT_FOUND",
+                      "field": "body.name",
+                      "issue": "Too small: expected string to have >=2 characters"
+                    }
+                  ],
+                  "infoMessage": {
+                    "id": 0,
+                    "msg": null,
+                    "msgType": "Information"
+                  },
+                  "hasError": false,
+                  "data": {
+                    "state": "valid",
+                    "email": "amelia.hart@example.test",
+                    "organizationName": "Acme Design Studio",
+                    "accountExists": false
+                  }
+                }
+              }
+            },
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/Maintenance"
+          }
+        },
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "x-required-permission": null,
+        "x-tenant-scoped": false,
+        "x-audited": false,
+        "x-idempotent": false,
+        "x-rate-limit": "invitation",
         "x-release": "MVP"
       }
     },

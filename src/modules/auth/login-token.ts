@@ -6,8 +6,8 @@ import { safeEqual, type KeyProvider } from '../../platform/crypto.js';
 /** Lifetime of a token from `GET /auth/gettoken`. */
 export const LOGIN_TOKEN_TTL_SECONDS = 300;
 
-/** The token is `[key, iv]` (base64). */
-export const loginTokenSchema = z.array(z.string().min(16).max(64)).length(2);
+/** The token is `[key, iv]` as hex strings (64 and 32 chars), the wire format of the control-center backend. */
+export const loginTokenSchema = z.array(z.string().regex(/^[0-9a-fA-F]+$/).min(32).max(64)).length(2);
 export const loginTokenResponse = z.array(z.string()).min(2).max(2);
 
 const invalid = (field: string) =>
@@ -18,22 +18,22 @@ const deriveKey = (keys: KeyProvider, iv: Buffer): Buffer =>
   createHmac('sha256', keys.current().key).update('login-token').update(iv).digest();
 
 /**
- * Issues `[key, iv]` as base64 strings. The first 4 bytes of the IV are the expiry (unix seconds, big-endian), the
+ * Issues `[key, iv]` as hex strings. The first 4 bytes of the IV are the expiry (unix seconds, big-endian), the
  * other 12 are random. The client uses both to encrypt the login payload with AES-256-CBC (crypto-js).
  */
 export function issueLoginToken(keys: KeyProvider, now: Date): [string, string] {
   const iv = Buffer.concat([Buffer.alloc(4), randomBytes(12)]);
   iv.writeUInt32BE(Math.floor(now.getTime() / 1000) + LOGIN_TOKEN_TTL_SECONDS, 0);
-  return [deriveKey(keys, iv).toString('base64'), iv.toString('base64')];
+  return [deriveKey(keys, iv).toString('hex'), iv.toString('hex')];
 }
 
 /** Verifies a `[key, iv]` token (issued by us, not expired) and returns the AES key and IV. */
 export function openLoginToken(keys: KeyProvider, now: Date, token: string[]): { key: Buffer; iv: Buffer } {
   const [keyB64, ivB64] = token as [string, string];
-  const iv = Buffer.from(ivB64, 'base64');
+  const iv = Buffer.from(ivB64, 'hex');
   if (iv.length !== 16 || iv.readUInt32BE(0) < Math.floor(now.getTime() / 1000)) throw invalid('tokenkeys');
   const key = deriveKey(keys, iv);
-  if (!safeEqual(key.toString('base64'), keyB64)) throw invalid('tokenkeys');
+  if (!safeEqual(key.toString('hex'), keyB64.toLowerCase())) throw invalid('tokenkeys');
   return { key, iv };
 }
 
