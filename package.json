@@ -43,6 +43,8 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@aws-sdk/client-s3": "^3.1151.0",
+    "@supabase/server": "^1.9.2",
+    "@supabase/supabase-js": "^2.118.0",
     "@vercel/functions": "^3.10.1",
     "argon2": "^0.45.1",
     "cors": "^2.8.6",

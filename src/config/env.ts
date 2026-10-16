@@ -57,6 +57,12 @@ const schema = z.object({
   /** Optional HTTP Basic gate in front of the docs (staging). Set both. */
   DOCS_BASIC_AUTH_USER: z.string().min(1).optional(),
   DOCS_BASIC_AUTH_PASS: z.string().min(8).optional(),
+  /** Supabase project URL and publishable (anon-equivalent) key. Optional; only needed when the Supabase client is used. */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  /** Privileged Supabase key (bypasses RLS). Server-only; never expose to clients. */
+  SUPABASE_SECRET_KEY: z.string().min(1).optional(),
+  SUPABASE_JWKS_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof schema>;
